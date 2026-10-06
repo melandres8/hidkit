@@ -24,7 +24,7 @@ Check the security tools that the pass uses (gitleaks, osv-scanner, semgrep):
 node /path/to/hidkit/skills/cheffy/scripts/doctor.mjs
 ```
 
-The doctor prints the pinned version and an install command for each missing tool.
+The doctor prints the pinned version and an install command for each missing tool, for macOS and Linux on arm64 and x64. Each command checks the sha256 of every download before it installs anything.
 
 ## Usage
 
@@ -84,5 +84,7 @@ npm run lint
 The measurement eval (baseline against Cheffy, with hidden tests, blind judges, and a noise check) and the design spec of Cheffy are in a separate private repository. Its tests and reference patches must not become public.
 
 ## Credits
+
+Hidkit is released under the [MIT License](LICENSE).
 
 Hidkit derives the Cheffy principles, recipes, and pass rules from [pstack](https://github.com/cursor/plugins/tree/main/pstack), under the MIT License. See [NOTICE](NOTICE).
