@@ -1,0 +1,12 @@
+{
+  "name": "hidkit",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "test": "node --test \"test/*.test.mjs\"",
+    "lint": "node skills/cheffy/scripts/lint.mjs ."
+  }
+}

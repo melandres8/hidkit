@@ -1,0 +1,14 @@
+tools:
+  fakescan:
+    version: "1.2.3"
+    version_command: [node, -e, "console.log('fakescan 1.2.3')"]
+  missingtool:
+    version: "1.0.0"
+    version_command: [hidkit-missing-tool-xyz, --version]
+checks:
+  secrets:
+    tool: fakescan
+    command: [node, -e, "console.log('no leaks found')"]
+  sast:
+    tool: missingtool
+    command: [hidkit-missing-tool-xyz, scan]

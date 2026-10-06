@@ -1,0 +1,23 @@
+# tiers:                    # optional; the harness map sets the default model of each tier
+#   strong: <model-id>
+#   fast: <model-id>
+# roles:
+#   critic:
+#     model: <model-id>
+#     external: <command>    # phase 2; phase 1 refuses it. For example `codex exec`.
+security:
+  asvs_level: 2              # 1, 2, or 3. Default 2. Use 3 for high-assurance clients.
+  # checks:                  # commands run through `trace check`; an override has no version pinning
+  #   secrets: [<tool>, <arg>]
+  #   dependencies: [<tool>, <arg>]
+  #   sast: [<tool>, <arg>]
+  waivers: []                # each: check, reason, approved_by, approved_on, expires
+  # Example: replace the line above with this list.
+  # waivers:
+  #   - check: dependencies
+  #     reason: No fixed version of the flagged package exists yet.
+  #     approved_by: Jane Doe
+  #     approved_on: "2026-10-04"
+  #     expires: "2026-12-31"
+ledger:
+  retention_days: 30
