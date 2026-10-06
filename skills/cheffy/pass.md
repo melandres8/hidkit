@@ -94,8 +94,6 @@ Cite `check` ids or a reason for each unmet item.
 | `ops` | 1, 9, 10 | Gate 1 as real state: forge, disk, and worktrees. Honor each pause before an irreversible action. |
 
 - The `profile:` field in the frontmatter of a recipe is the only place that assigns a profile to that recipe.
-- In Skill authoring, `lint` plus an Eval meet gate 2 when behavior changes.
-- Review applies the `code` gates to the diff under review. Review holds its own output to the `read-only` profile.
 
 ## Verdicts
 

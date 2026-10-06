@@ -50,7 +50,7 @@ This map translates Cheffy actions into Claude Code tools. Each row comes from t
 - The skills page does not document a "Base directory for this skill" line. Treat that line as unverified. Prefer `${CLAUDE_SKILL_DIR}`.
 - Permission rules match single commands. Cheffy runs one command in each `Bash` call, so each call matches an allow rule such as `Bash(node *)`.
 - The docs name the plugin skill `/hidkit:cheffy`. They name plugin agents `hidkit:<role>`.
-- `usage_source` is null. Per-delegation tokens stay `null` (spec 12).
+- `usage_source` is null. Per-delegation tokens stay `null`.
 - `detect_env` is a fallback only. Claude Code sets `CLAUDECODE=1` in subprocesses it spawns, such as `Bash` and hook commands. Prefer the harness named in your system context.
 - On 2.1.289 the `init` tool list of a role omits `Grep` and `Glob`, even when the role declares them. A role then searches with `Read`, and with `Bash` when it has a shell.
 - Run one Cheffy session per repository. All worktrees share one `.hidkit/current-run` pointer, so two sessions write to each other's run.

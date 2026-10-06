@@ -65,7 +65,6 @@ Security has the highest priority in Hidkit.
 | `skills/cheffy/scripts/` | `trace.mjs` (the ledger and the checks), `lint.mjs`, and `doctor.mjs`. |
 | `skills/plating/` | The writing standard for every reply and prose file. |
 | `agents/` | The roles: investigator, implementer, critic, verifier, and judge. |
-| `docs/specs/` | The design of Cheffy and the decisions behind it. |
 | `GLOSSARY.md` | The defined terms. |
 | `test/` | Unit tests. |
 | `scripts/` | A smoke test that runs Cheffy in Claude Code. It spends subscription tokens. |
@@ -82,7 +81,7 @@ npm test
 npm run lint
 ```
 
-The measurement eval (baseline against Cheffy, with hidden tests, blind judges, and a noise check) is in a separate private repository. Its tests and reference patches must not become public.
+The measurement eval (baseline against Cheffy, with hidden tests, blind judges, and a noise check) and the design spec of Cheffy are in a separate private repository. Its tests and reference patches must not become public.
 
 ## Credits
 
