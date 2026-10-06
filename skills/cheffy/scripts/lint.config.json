@@ -1,0 +1,46 @@
+{
+  "lintPaths": ["skills", "agents", "GLOSSARY.md"],
+  "proceduralPrefixes": ["skills/", "agents/"],
+  "sentenceLimits": {
+    "procedural": { "soft": 20, "hard": 26 },
+    "descriptive": { "soft": 25, "hard": 32 }
+  },
+  "rfc": {
+    "forbiddenUppercase": ["SHALL", "REQUIRED", "RECOMMENDED", "OPTIONAL"],
+    "lowercaseInProcedural": ["must", "should", "shall"]
+  },
+  "bannedWords": ["simply", "just", "basically", "obviously", "clearly", "leverage", "utilize", "seamless", "seamlessly", "robust", "various", "etc.", "simplemente", "básicamente", "obviamente", "claramente"],
+  "paths": {
+    "agents": "agents",
+    "skills": "skills",
+    "cheffy": "skills/cheffy",
+    "recipes": "skills/cheffy/recipes",
+    "principles": "skills/cheffy/principles",
+    "pass": "skills/cheffy/pass.md",
+    "harness": "skills/cheffy/references/harness/"
+  },
+  "role": {
+    "tiers": ["strong", "fast"],
+    "access": ["read-only", "write"],
+    "sections": ["Mandate", "Judgment", "Limits", "Input", "Output"]
+  },
+  "principle": {
+    "groups": ["core", "architecture", "verification", "delegation", "meta"],
+    "sections": ["When", "Rule", "Why"]
+  },
+  "recipe": { "sections": ["Steps", "Reply"], "maxSteps": 12 },
+  "budgets": [
+    { "path": "skills/cheffy/SKILL.md", "words": 1500 },
+    { "path": "skills/cheffy/pass.md", "words": 900 },
+    { "path": "skills/cheffy/security.md", "words": 400 },
+    { "path": "skills/cheffy/untrusted-content.md", "words": 300 },
+    { "path": "skills/plating/SKILL.md", "words": 800 },
+    { "path": "skills/cheffy/recipes/", "words": 500 },
+    { "path": "skills/cheffy/principles/", "words": 300 },
+    { "path": "agents/", "words": 300 }
+  ],
+  "toolNames": {
+    "anywhere": ["subagent_type", "spawn_agent", "AskUserQuestion", "AskQuestion", "TodoWrite"],
+    "backticked": ["Agent", "Task", "Bash", "Read", "Edit", "Write", "Grep", "Glob", "WebFetch", "WebSearch", "Skill"]
+  }
+}

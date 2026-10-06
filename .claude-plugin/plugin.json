@@ -1,0 +1,7 @@
+{
+  "name": "hidkit",
+  "version": "0.1.0",
+  "description": "Cheffy: a quality-first software delivery harness with recipes, isolated roles, and an evidence-based pass.",
+  "author": { "name": "Melkin Mosquera" },
+  "keywords": ["quality", "verification", "agents", "security"]
+}
