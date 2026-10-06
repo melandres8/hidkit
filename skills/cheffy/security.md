@@ -17,7 +17,7 @@ node <trace> check --step pass --security all
 - A missing tool fails gate 11. Gate 11 never passes on a missing tool.
 - `node <skill-dir>/scripts/doctor.mjs` lists missing tools and prints pinned install commands for the user.
 - Cheffy MUST NOT install or download tools. Propose the tool. The user installs it or writes a waiver.
-- The semgrep install uses pipx, which does not check the registry sha256. That value is for manual checks.
+- Each install command checks the sha256 of each download. For semgrep, pip checks every package against `semgrep-requirements.txt`.
 
 ## Deep review
 

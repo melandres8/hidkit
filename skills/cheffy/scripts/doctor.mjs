@@ -8,12 +8,15 @@ import { parseYaml } from './lib/yaml.mjs';
 
 export const platformKey = (platform = process.platform, arch = process.arch) => `${platform}-${arch}`;
 
-export function diagnose({ registry, versionOf = installedVersion, platform = platformKey(), harnessMaps = [], root = process.cwd() }) {
+// An install command can name a file next to the registry, such as a hash-locked requirements file, as {skill-dir}.
+const withSkillDir = (install, skillDir) => (install ? { ...install, command: install.command.replaceAll('{skill-dir}', skillDir) } : null);
+
+export function diagnose({ registry, versionOf = installedVersion, platform = platformKey(), harnessMaps = [], root = process.cwd(), skillDir = path.dirname(SECURITY_TOOLS_FILE) }) {
   const tools = Object.entries(registry.tools ?? {}).map(([name, tool]) => {
     const installed = versionOf(tool.version_command) ?? null;
     const pinned = String(tool.version);
     const status = installed === null ? 'missing' : installed === pinned ? 'ok' : 'mismatch';
-    return { name, pinned, installed, status, install: status === 'ok' ? null : (tool.install?.[platform] ?? null) };
+    return { name, pinned, installed, status, install: status === 'ok' ? null : withSkillDir(tool.install?.[platform] ?? null, skillDir) };
   });
   const harnesses = harnessMaps.map((map) => {
     const { installed, verified } = adapterVerified(map, versionOf);

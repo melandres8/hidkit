@@ -7,6 +7,14 @@ tools:
         url: "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_darwin_arm64.tar.gz"
         sha256: "b40ab0ae55c505963e365f271a8d3846efbc170aa17f2607f13df610a9aeb6a5"
         command: "curl -fsSLO https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_darwin_arm64.tar.gz && echo 'b40ab0ae55c505963e365f271a8d3846efbc170aa17f2607f13df610a9aeb6a5  gitleaks_8.30.1_darwin_arm64.tar.gz' | shasum -a 256 -c - && tar -xzf gitleaks_8.30.1_darwin_arm64.tar.gz gitleaks && mkdir -p ~/.local/bin && mv gitleaks ~/.local/bin/"
+      darwin-x64:
+        url: "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_darwin_x64.tar.gz"
+        sha256: "dfe101a4db2255fc85120ac7f3d25e4342c3c20cf749f2c20a18081af1952709"
+        command: "curl -fsSLO https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_darwin_x64.tar.gz && echo 'dfe101a4db2255fc85120ac7f3d25e4342c3c20cf749f2c20a18081af1952709  gitleaks_8.30.1_darwin_x64.tar.gz' | shasum -a 256 -c - && tar -xzf gitleaks_8.30.1_darwin_x64.tar.gz gitleaks && mkdir -p ~/.local/bin && mv gitleaks ~/.local/bin/"
+      linux-arm64:
+        url: "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_arm64.tar.gz"
+        sha256: "e4a487ee7ccd7d3a7f7ec08657610aa3606637dab924210b3aee62570fb4b080"
+        command: "curl -fsSLO https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_arm64.tar.gz && echo 'e4a487ee7ccd7d3a7f7ec08657610aa3606637dab924210b3aee62570fb4b080  gitleaks_8.30.1_linux_arm64.tar.gz' | sha256sum -c - && tar -xzf gitleaks_8.30.1_linux_arm64.tar.gz gitleaks && mkdir -p ~/.local/bin && mv gitleaks ~/.local/bin/"
       linux-x64:
         url: "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz"
         sha256: "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
@@ -19,6 +27,14 @@ tools:
         url: "https://github.com/google/osv-scanner/releases/download/v2.6.0/osv-scanner_darwin_arm64"
         sha256: "98c460dcd37de25819babd757d04542045b6243113e209edcd4d89fedb0256b4"
         command: "curl -fsSLo osv-scanner https://github.com/google/osv-scanner/releases/download/v2.6.0/osv-scanner_darwin_arm64 && echo '98c460dcd37de25819babd757d04542045b6243113e209edcd4d89fedb0256b4  osv-scanner' | shasum -a 256 -c - && chmod +x osv-scanner && mkdir -p ~/.local/bin && mv osv-scanner ~/.local/bin/"
+      darwin-x64:
+        url: "https://github.com/google/osv-scanner/releases/download/v2.6.0/osv-scanner_darwin_amd64"
+        sha256: "60c5296637e977b28eeda5c7f13573e447659a632922737f94d11fa7e30ad6ca"
+        command: "curl -fsSLo osv-scanner https://github.com/google/osv-scanner/releases/download/v2.6.0/osv-scanner_darwin_amd64 && echo '60c5296637e977b28eeda5c7f13573e447659a632922737f94d11fa7e30ad6ca  osv-scanner' | shasum -a 256 -c - && chmod +x osv-scanner && mkdir -p ~/.local/bin && mv osv-scanner ~/.local/bin/"
+      linux-arm64:
+        url: "https://github.com/google/osv-scanner/releases/download/v2.6.0/osv-scanner_linux_arm64"
+        sha256: "2c71403eb443d05891c4f268c3ad771cf4f16e5443463fd7851ef8f454d3c7e4"
+        command: "curl -fsSLo osv-scanner https://github.com/google/osv-scanner/releases/download/v2.6.0/osv-scanner_linux_arm64 && echo '2c71403eb443d05891c4f268c3ad771cf4f16e5443463fd7851ef8f454d3c7e4  osv-scanner' | sha256sum -c - && chmod +x osv-scanner && mkdir -p ~/.local/bin && mv osv-scanner ~/.local/bin/"
       linux-x64:
         url: "https://github.com/google/osv-scanner/releases/download/v2.6.0/osv-scanner_linux_amd64"
         sha256: "ca69b3d3cd08f889a49dc0a383122f71cc528b83803671df5fd874d97485b108"
@@ -26,15 +42,24 @@ tools:
   semgrep:
     version: "1.179.0"
     version_command: [semgrep, --version]
+    # pip checks the sha256 of semgrep and of every dependency against semgrep-requirements.txt (--require-hashes).
     install:
       darwin-arm64:
         url: "https://files.pythonhosted.org/packages/bd/77/b573a0faa5a5b0848dc884a0f8595fcb5c550f55fa5f455a233b29a52c0c/semgrep-1.179.0-cp310.cp311.cp312.cp313.cp314.py310.py311.py312.py313.py314-none-macosx_11_0_arm64.whl"
         sha256: "9b57026f587a4bc7833bca2b6e4d6778072a79dcf0b9f2e5e01d3d5df39c7759"
-        command: "pipx install semgrep==1.179.0"
+        command: "python3 -m venv ~/.local/share/hidkit/semgrep && ~/.local/share/hidkit/semgrep/bin/pip install --require-hashes --no-deps --only-binary :all: -r \"{skill-dir}/semgrep-requirements.txt\" && mkdir -p ~/.local/bin && ln -sf ~/.local/share/hidkit/semgrep/bin/semgrep ~/.local/bin/semgrep"
+      darwin-x64:
+        url: "https://files.pythonhosted.org/packages/85/4b/4cbaa0c3c124ae7d522e688c01f06013038ff59cc818c21dfa44c96380b3/semgrep-1.179.0-cp310.cp311.cp312.cp313.cp314.py310.py311.py312.py313.py314-none-macosx_10_14_x86_64.whl"
+        sha256: "34b5e801e3f4325c93014124ccfab6da96857f74aae68458d2a07defd4727b0f"
+        command: "python3 -m venv ~/.local/share/hidkit/semgrep && ~/.local/share/hidkit/semgrep/bin/pip install --require-hashes --no-deps --only-binary :all: -r \"{skill-dir}/semgrep-requirements.txt\" && mkdir -p ~/.local/bin && ln -sf ~/.local/share/hidkit/semgrep/bin/semgrep ~/.local/bin/semgrep"
+      linux-arm64:
+        url: "https://files.pythonhosted.org/packages/e3/ba/b9f1afbed852a21b6f7e72c064343161c5ab249954c46db1796b59314290/semgrep-1.179.0-cp310.cp311.cp312.cp313.cp314.py310.py311.py312.py313.py314-none-manylinux_2_34_aarch64.whl"
+        sha256: "c23d79c4839540372acc39b59aad167c1c7f3dc21bacacb27f19aa2edd79d271"
+        command: "python3 -m venv ~/.local/share/hidkit/semgrep && ~/.local/share/hidkit/semgrep/bin/pip install --require-hashes --no-deps --only-binary :all: -r \"{skill-dir}/semgrep-requirements.txt\" && mkdir -p ~/.local/bin && ln -sf ~/.local/share/hidkit/semgrep/bin/semgrep ~/.local/bin/semgrep"
       linux-x64:
         url: "https://files.pythonhosted.org/packages/cc/6c/621944b4843c7484aeaefd5b232d93780bdf95259567c10a9a8129f08dc6/semgrep-1.179.0-cp310.cp311.cp312.cp313.cp314.py310.py311.py312.py313.py314-none-manylinux_2_34_x86_64.whl"
         sha256: "b529c4db63f293918989b84ce4640f12f1b1e4680d9e7fcab5f3554f9113dfc5"
-        command: "pipx install semgrep==1.179.0"
+        command: "python3 -m venv ~/.local/share/hidkit/semgrep && ~/.local/share/hidkit/semgrep/bin/pip install --require-hashes --no-deps --only-binary :all: -r \"{skill-dir}/semgrep-requirements.txt\" && mkdir -p ~/.local/bin && ln -sf ~/.local/share/hidkit/semgrep/bin/semgrep ~/.local/bin/semgrep"
 checks:
   secrets:
     tool: gitleaks

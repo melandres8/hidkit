@@ -37,17 +37,36 @@ test('reports ok, missing, and mismatched tools with install steps', (t) => {
   assert.equal(platformKey('linux', 'x64'), 'linux-x64');
 });
 
-test('the real registry is complete for both supported platforms', () => {
+test('the real registry pins and verifies every install on the four supported platforms', () => {
   const registry = parseYaml(fs.readFileSync(new URL('../skills/cheffy/security-tools.yaml', import.meta.url), 'utf8'));
   for (const name of ['secrets', 'dependencies', 'sast']) {
     const check = registry.checks[name];
     assert.ok(Array.isArray(check.command) && check.command.length > 0, `${name} command`);
     const tool = registry.tools[check.tool];
     assert.match(String(tool.version), /^\d+\.\d+\.\d+$/, `${check.tool} version`);
-    for (const platform of ['darwin-arm64', 'linux-x64']) {
+    for (const platform of ['darwin-arm64', 'darwin-x64', 'linux-arm64', 'linux-x64']) {
       const install = tool.install[platform];
       assert.ok(install?.command, `${check.tool} ${platform} command`);
       assert.match(String(install.sha256), /^[0-9a-f]{64}$/, `${check.tool} ${platform} sha256`);
+      // The command itself verifies the download: a checksum of the artifact, or pip with hashes for every package.
+      assert.ok(install.command.includes(install.sha256) || install.command.includes('--require-hashes'), `${check.tool} ${platform} verifies`);
+      assert.ok(!/pipx install|pip install(?!.*--require-hashes)/.test(install.command), `${check.tool} ${platform} has no unverified pip install`);
     }
   }
+});
+
+test('the semgrep lock pins the registry version with hashes for every package', () => {
+  const registry = parseYaml(fs.readFileSync(new URL('../skills/cheffy/security-tools.yaml', import.meta.url), 'utf8'));
+  const lock = fs.readFileSync(new URL('../skills/cheffy/semgrep-requirements.txt', import.meta.url), 'utf8');
+  assert.match(lock, new RegExp(`^semgrep==${registry.tools.semgrep.version.replaceAll('.', '\\.')} \\\\$`, 'm'));
+  const pins = lock.split('\n').filter((l) => /^[a-z0-9]/i.test(l));
+  assert.ok(pins.length > 1);
+  for (const pin of pins) assert.match(pin, /^[\w.-]+==[\w.]+( ;.*)? \\$/, `${pin} is pinned and has hashes`);
+  assert.ok(lock.includes(`--hash=sha256:${registry.tools.semgrep.install['linux-x64'].sha256}`));
+});
+
+test('doctor resolves {skill-dir} in an install command', () => {
+  const registry = { tools: { s: { version: '1.0.0', version_command: ['s'], install: { 'linux-x64': { command: 'pip install -r "{skill-dir}/req.txt"' } } } } };
+  const result = diagnose({ registry, versionOf: () => null, platform: 'linux-x64', skillDir: '/plugin/skills/cheffy' });
+  assert.equal(result.tools[0].install.command, 'pip install -r "/plugin/skills/cheffy/req.txt"');
 });
