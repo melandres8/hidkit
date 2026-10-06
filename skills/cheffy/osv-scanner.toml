@@ -1,0 +1,2 @@
+# Hidkit passes this file to osv-scanner with --config. Then osv-scanner does not read an osv-scanner.toml file from the scanned repository.
+# This file ignores no vulnerability and no package.

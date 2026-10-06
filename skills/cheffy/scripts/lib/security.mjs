@@ -1,5 +1,7 @@
+import path from 'node:path';
 import { installedVersion } from './config.mjs';
 import { TraceError } from './ledger.mjs';
+import { SECURITY_TOOLS_FILE } from './paths.mjs';
 
 const WAIVER_KEYS = ['check', 'reason', 'approved_by', 'approved_on', 'expires'];
 const MAX_WAIVER_DAYS = 90;
@@ -29,7 +31,8 @@ export function waiverStatus(waiver, today) {
   return { active: errors.length === 0, errors };
 }
 
-export function resolveSecurityCheck(name, config, registry, versionOf = installedVersion) {
+// A registry command names Hidkit config files as {skill-dir}: the directory of the registry file.
+export function resolveSecurityCheck(name, config, registry, versionOf = installedVersion, skillDir = path.dirname(SECURITY_TOOLS_FILE)) {
   const override = config.security?.checks?.[name];
   const definition = registry.checks?.[name];
   if (!override && !definition) throw new TraceError(`unknown security check: ${name}`);
@@ -42,7 +45,9 @@ export function resolveSecurityCheck(name, config, registry, versionOf = install
   if (!tool) throw new TraceError(`security-tools.yaml has no tool "${definition.tool}"`);
   const installed = versionOf(tool.version_command);
   const pinned = String(tool.version);
-  return { command: definition.command, source: 'registry', toolName: definition.tool, installed, pinned, versionOk: installed === null ? null : installed === pinned, waiver };
+  const command = definition.command.map((arg) => String(arg).replaceAll('{skill-dir}', skillDir));
+  const suppressionFiles = (definition.suppression_files ?? []).map(String);
+  return { command, source: 'registry', toolName: definition.tool, installed, pinned, versionOk: installed === null ? null : installed === pinned, waiver, suppressionFiles };
 }
 
 // A registry scan with delta_args reports only findings that are new since <base>: the args go before the scan target.

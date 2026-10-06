@@ -97,16 +97,47 @@ const singleCheckResult = ({ event, clean }) => ({
   text: `${outputTail(clean)}\n${JSON.stringify({ check_id: event.check_id, exit_code: event.exit_code, output_path: event.output_path, version_ok: event.version_ok })}`,
 });
 
+// gitleaks and semgrep always read some suppression files from the scanned repository, and no flag turns that off.
+// A file is "changed" when it is untracked, is not a regular file, or differs from the run base. With no base, each file is changed.
+// A deleted file is not listed: the scan then suppresses less.
+// The match ignores case, because a case-insensitive file system gives .GITLEAKSIGNORE to a scanner that opens .gitleaksignore.
+function suppressionState(ctx, patterns) {
+  const specs = patterns.map((pattern) => `:(glob,icase)${pattern}`);
+  const list = (...args) => git(ctx, ...args).split('\0').filter(Boolean);
+  const onDisk = (file) => {
+    try {
+      return fs.lstatSync(path.join(ctx.cwd, file));
+    } catch (error) {
+      if (error.code === 'ENOENT') return null;
+      throw error;
+    }
+  };
+  const present = [...new Set(list('ls-files', '-z', '--cached', '--others', '--', ...specs))].filter((file) => onDisk(file)).sort();
+  const given = runStart(readEvents(ctx.root, ctx.runId)).base;
+  const base = given && git(ctx, 'rev-parse', '--verify', '--quiet', '--end-of-options', `${given}^{commit}`);
+  const changed = new Set(base ? [
+    ...list('diff', '--name-only', '-z', '--relative', '--no-renames', base, '--', ...specs),
+    ...list('ls-files', '-z', '--others', '--', ...specs),
+    ...present.filter((file) => !onDisk(file).isFile()),
+  ] : present);
+  return { changed: present.filter((file) => changed.has(file)), unchanged: present.filter((file) => !changed.has(file)), base };
+}
+
 // Runs one command, records one check event (and a decision for a used waiver), and returns the event and the redacted output.
 function runCheck(ctx, step, argv, scan) {
   const { name = null, security = null, project = null, deltaBase = null } = scan ?? {};
   const checkId = newId('c');
   const startedAt = now();
+  const suppression = security?.suppressionFiles?.length ? suppressionState(ctx, security.suppressionFiles) : null;
   let output;
   let exitCode;
   if (security?.toolName && security.installed === null) {
     output = `${security.toolName} is not installed. Run doctor for the pinned install command.\n`;
     exitCode = 127;
+  } else if (suppression?.changed.length) {
+    output = `${suppression.changed.join(', ')} changed since the run base (${suppression.base ?? 'none'}). ${security.toolName} always reads these files, so they can hide findings. `
+      + 'The scan did not run. Ask the user to review the change.\n';
+    exitCode = 1;
   } else {
     const res = spawnSync(argv[0], argv.slice(1), { cwd: ctx.cwd, encoding: 'utf8', maxBuffer: MAX_OUTPUT_BYTES });
     const overflow = res.error?.code === 'ENOBUFS';
@@ -121,6 +152,7 @@ function runCheck(ctx, step, argv, scan) {
   const event = {
     type: 'check', check_id: checkId, step, command: argv.join(' '), security_check: name,
     ...(security && { security_source: security.source, config_sha256: project.sha256, delta_base: deltaBase }),
+    ...(suppression && { suppression_files: { changed: suppression.changed, unchanged: suppression.unchanged } }),
     tool_version: security?.installed ?? null, version_ok: security?.versionOk ?? null, waiver: security?.waiver ?? null,
     exit_code: exitCode, output_sha256: crypto.createHash('sha256').update(clean).digest('hex'),
     output_path: path.relative(ctx.root, logFile), started_at: startedAt, ended_at: now(),

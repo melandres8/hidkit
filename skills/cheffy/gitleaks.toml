@@ -1,0 +1,6 @@
+# Hidkit passes this file to gitleaks with --config. Then gitleaks does not read a .gitleaks.toml file from the scanned repository.
+# This file uses the default gitleaks rules and adds no allowlist.
+title = "Hidkit"
+
+[extend]
+useDefault = true

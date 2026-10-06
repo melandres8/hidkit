@@ -44,6 +44,9 @@ export function summarizeRun(events, { today, withheldByRole = {}, checkRequired
       flags.push(`${label} saw a hidkit.config.yaml that differs from run_start`);
     }
     if (check.security_source === 'config') flags.push(`${label} ran a config override, not the pinned registry tool`);
+    const { changed = [], unchanged = [] } = check.suppression_files ?? {};
+    if (changed.length) flags.push(`${label} did not run: suppression files changed since the run base: ${changed.join(', ')}`);
+    if (unchanged.length) flags.push(`${label} applied suppression files from the repository: ${unchanged.join(', ')}`);
     if (usedWaiver(check, today)) {
       flags.push(`${label} passed only through its waiver: ${check.exit_code === 0 ? 'version mismatch' : `exit ${check.exit_code}`}`);
     }

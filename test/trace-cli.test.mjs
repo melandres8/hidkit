@@ -563,3 +563,108 @@ test('the sast scan runs as a delta from the run base only on a clean work tree'
   assert.equal(sast().delta_base, null);
   assert.doesNotMatch(sast().command, /baseline-commit/);
 });
+
+// A registry of fake scanners that print their argv, with the suppression files of the real registry.
+function suppressionPlugin() {
+  const plugin = tempDir('hidkit-plugin-');
+  fs.cpSync(FIXTURE_PLUGIN, plugin, { recursive: true });
+  const tool = (name) => `  ${name}:\n    version: "1.0.0"\n    version_command: [node, -e, "console.log('1.0.0')"]\n`;
+  const check = (name, extra = '') => `  ${name}:\n    tool: ${name}\n    command: [node, -e, "console.log('ran', process.argv.slice(1).join(' '))", "--", --config, "{skill-dir}/${name}.toml", "."]\n${extra}`;
+  fs.writeFileSync(path.join(plugin, 'skills/cheffy/security-tools.yaml'), `tools:\n${tool('secrets')}${tool('dependencies')}${tool('sast')}checks:\n`
+    + `${check('secrets', '    suppression_files: [.gitleaksignore]\n')}${check('dependencies')}${check('sast', '    suppression_files: ["**/.semgrepignore"]\n')}`);
+  return plugin;
+}
+
+test('a registry scan reads its config from the skill dir and fails on a suppression file that changed since the run base', () => {
+  const plugin = suppressionPlugin();
+  const env = { HIDKIT_PLUGIN_ROOT: plugin };
+  const { repo, runId } = started();
+  const secrets = (cwd = repo) => trace(cwd, ['check', '--step', 'security', '--security', 'secrets'], env);
+  const event = (r) => readEvents(repo, runId).find((e) => e.check_id === r.json().check_id);
+
+  const clean = secrets();
+  assert.equal(clean.code, 0, clean.err);
+  assert.match(event(clean).command, new RegExp(`--config ${path.join(plugin, 'skills/cheffy/secrets.toml').replaceAll('.', '\\.')} \\.$`));
+  assert.deepEqual(event(clean).suppression_files, { changed: [], unchanged: [] });
+
+  fs.writeFileSync(path.join(repo, '.gitleaksignore'), 'app.js:github-pat:1\n');
+  const untracked = secrets();
+  assert.equal(untracked.code, 1);
+  assert.match(untracked.out, /\.gitleaksignore changed since the run base .*The scan did not run/);
+  assert.doesNotMatch(untracked.out, /^ran /m);
+  assert.deepEqual(event(untracked).suppression_files, { changed: ['.gitleaksignore'], unchanged: [] });
+
+  commit(repo, '.gitleaksignore', 'app.js:github-pat:1\n');
+  const committed = secrets();
+  assert.equal(committed.code, 1);
+  const flags = trace(repo, ['report']).json().runs[0].flags;
+  assert.ok(flags.includes(`check ${committed.json().check_id} (secrets) did not run: suppression files changed since the run base: .gitleaksignore`), flags.join('\n'));
+
+  fs.mkdirSync(path.join(repo, 'sub'));
+  commit(repo, 'sub/.semgrepignore', 'app.js\n');
+  const all = trace(repo, ['check', '--step', 'pass', '--security', 'all'], env);
+  assert.equal(all.code, 1);
+  assert.deepEqual(all.json().failed, ['secrets', 'sast']);
+  assert.match(all.out, /sub\/\.semgrepignore changed since the run base/);
+  const head = trace(repo, ['verify-head', '--', node, '-e', '0'], env);
+  assert.equal(head.code, 1);
+  assert.deepEqual(head.json().security_failed, ['secrets', 'sast']);
+
+  // Paths are relative to the scan dir, as the scanner reads them.
+  const sub = trace(path.join(repo, 'sub'), ['check', '--step', 'security', '--security', 'sast'], env);
+  assert.equal(sub.code, 1);
+  assert.match(sub.out, /^\.semgrepignore changed since the run base/m);
+  assert.equal(secrets(path.join(repo, 'sub')).code, 0);
+});
+
+test('a suppression file that is unchanged since the run base is applied and flagged; a deleted one is not', () => {
+  const env = { HIDKIT_PLUGIN_ROOT: suppressionPlugin() };
+  const repo = tempRepo();
+  commit(repo, '.gitleaksignore', 'app.js:github-pat:1\n');
+  fs.mkdirSync(path.join(repo, 'lib'));
+  commit(repo, 'lib/.semgrepignore', 'app.js\n');
+  assert.equal(trace(repo, ['setup']).code, 0);
+  assert.equal(trace(repo, startArgs()).code, 0);
+  const all = trace(repo, ['check', '--step', 'pass', '--security', 'all'], env);
+  assert.equal(all.code, 0, all.out);
+  const [secretsId, , sastId] = all.json().check_ids;
+  const flags = trace(repo, ['report']).json().runs[0].flags;
+  assert.ok(flags.includes(`check ${secretsId} (secrets) applied suppression files from the repository: .gitleaksignore`), flags.join('\n'));
+  assert.ok(flags.includes(`check ${sastId} (sast) applied suppression files from the repository: lib/.semgrepignore`), flags.join('\n'));
+  fs.rmSync(path.join(repo, '.gitleaksignore'));
+  assert.equal(trace(repo, ['check', '--step', 'security', '--security', 'secrets'], env).code, 0);
+});
+
+test('a suppression file fails the scan when it is gitignored, has other case, is a symlink, or is present in a run with no base', () => {
+  const env = { HIDKIT_PLUGIN_ROOT: suppressionPlugin() };
+  const secrets = (repo) => trace(repo, ['check', '--step', 'security', '--security', 'secrets'], env);
+
+  const { repo: ignored } = started();
+  commit(ignored, '.gitignore', '.gitleaksignore\n');
+  fs.writeFileSync(path.join(ignored, '.gitleaksignore'), 'app.js:github-pat:1\n');
+  assert.equal(secrets(ignored).code, 1);
+  fs.rmSync(path.join(ignored, '.gitleaksignore'));
+  fs.writeFileSync(path.join(ignored, '.GitleaksIgnore'), 'app.js:github-pat:1\n');
+  assert.match(secrets(ignored).out, /^\.GitleaksIgnore changed since the run base/m);
+
+  const linked = tempRepo();
+  fs.writeFileSync(path.join(linked, 'list.txt'), 'app.js:github-pat:1\n');
+  fs.symlinkSync('list.txt', path.join(linked, '.gitleaksignore'));
+  execFileSync('git', ['add', '-A'], { cwd: linked });
+  execFileSync('git', ['-c', 'user.email=t@e.com', '-c', 'user.name=t', '-c', 'commit.gpgsign=false', 'commit', '-q', '-m', 'link'], { cwd: linked });
+  assert.equal(trace(linked, ['setup']).code, 0);
+  assert.equal(trace(linked, startArgs()).code, 0);
+  const link = secrets(linked);
+  assert.equal(link.code, 1);
+  assert.match(link.out, /\.gitleaksignore changed since the run base/);
+
+  const unborn = tempDir('hidkit-unborn-');
+  execFileSync('git', ['init', '-q'], { cwd: unborn });
+  assert.equal(trace(unborn, ['setup']).code, 0);
+  assert.equal(trace(unborn, startArgs()).code, 0);
+  assert.equal(secrets(unborn).code, 0);
+  fs.writeFileSync(path.join(unborn, '.gitleaksignore'), 'app.js:github-pat:1\n');
+  const noBase = secrets(unborn);
+  assert.equal(noBase.code, 1);
+  assert.match(noBase.out, /changed since the run base \(none\)/);
+});
