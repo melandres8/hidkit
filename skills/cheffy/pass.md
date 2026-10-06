@@ -76,7 +76,7 @@ The ledger of the run is complete. Every delegation has a close. A `paused` run 
 Apply each item only when the diff touches it.
 
 - Performance: measure a hot path change before and after, as [Explain the Number](principles/explain-the-number.md) requires.
-- Reliability: give new I/O timeouts, bounded and idempotent retries, and handled errors.
+- Reliability: give new I/O timeouts, bounded retries, and handled errors. Follow [Make Operations Idempotent](principles/make-operations-idempotent.md).
 - Accessibility: run an automated WCAG 2.2 AA check on a UI change.
 - Observability: make each new operation emit the logs or metrics needed to debug it.
 

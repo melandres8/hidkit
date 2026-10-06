@@ -65,9 +65,10 @@ Security has the highest priority in Hidkit.
 | `skills/cheffy/scripts/` | `trace.mjs` (the ledger and the checks), `lint.mjs`, and `doctor.mjs`. |
 | `skills/plating/` | The writing standard for every reply and prose file. |
 | `agents/` | The roles: investigator, implementer, critic, verifier, and judge. |
-| `docs/specs/`, `docs/plans/` | The phase 1 design and its implementation plan. |
+| `docs/specs/` | The design of Cheffy and the decisions behind it. |
 | `GLOSSARY.md` | The defined terms. |
-| `test/`, `scripts/` | Unit tests and a Claude Code smoke test. |
+| `test/` | Unit tests. |
+| `scripts/` | A smoke test that runs Cheffy in Claude Code. It spends subscription tokens. |
 
 ## Development
 

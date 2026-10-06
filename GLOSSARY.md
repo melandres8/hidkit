@@ -78,9 +78,9 @@ This file is the controlled vocabulary of Hidkit. Use each term in the sense giv
 
 **Do not use:** decision log, audit log.
 
-## ledger-root
+## ledger_root
 
-**Definition.** A brief field that gives the directory in which a role finds the ledger files of the repository.
+**Definition.** A brief header line that gives the directory in which a role finds the ledger files of the repository.
 
 ## mode
 

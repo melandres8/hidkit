@@ -262,6 +262,8 @@ Recipe summaries. Full steps are written during implementation. pstack's equival
 | Delegation | Never Block on the Human | |
 | Meta | Encode Lessons in Structure | |
 
+Phase 1 ships only the principles that a recipe, a role, the pass, or another shipped principle links, because Cheffy never lists directories. The Autonomy and Questions sections of `SKILL.md` cover Never Block on the Human. Encode Lessons in Structure is a rule for the maintainers of Hidkit, not for Cheffy.
+
 ## 9. The pass
 
 The pass is a rubric of checkable claims, not a score. Each gate needs evidence. It lives in `skills/cheffy/pass.md`.
