@@ -571,7 +571,7 @@ function suppressionPlugin() {
   const tool = (name) => `  ${name}:\n    version: "1.0.0"\n    version_command: [node, -e, "console.log('1.0.0')"]\n`;
   const check = (name, extra = '') => `  ${name}:\n    tool: ${name}\n    command: [node, -e, "console.log('ran', process.argv.slice(1).join(' '))", "--", --config, "{skill-dir}/${name}.toml", "."]\n${extra}`;
   fs.writeFileSync(path.join(plugin, 'skills/cheffy/security-tools.yaml'), `tools:\n${tool('secrets')}${tool('dependencies')}${tool('sast')}checks:\n`
-    + `${check('secrets', '    suppression_files: [.gitleaksignore]\n')}${check('dependencies')}${check('sast', '    suppression_files: ["**/.semgrepignore"]\n')}`);
+    + `${check('secrets', '    suppression_files: [.gitleaksignore]\n')}${check('dependencies', '    tracked_targets: ["/**/requirements.txt"]\n')}${check('sast', '    suppression_files: ["/**/.semgrepignore"]\n')}`);
   return plugin;
 }
 
@@ -610,7 +610,10 @@ test('a registry scan reads its config from the skill dir and fails on a suppres
   assert.equal(head.code, 1);
   assert.deepEqual(head.json().security_failed, ['secrets', 'sast']);
 
-  // Paths are relative to the scan dir, as the scanner reads them.
+  // From a subdirectory, sast still checks each .semgrepignore, and secrets checks only the .gitleaksignore of the scan dir.
+  commit(repo, 'sub/app.js', '0\n');
+  fs.rmSync(path.join(repo, 'sub/.semgrepignore'));
+  commit(repo, '.semgrepignore', 'sub/\n');
   const sub = trace(path.join(repo, 'sub'), ['check', '--step', 'security', '--security', 'sast'], env);
   assert.equal(sub.code, 1);
   assert.match(sub.out, /^\.semgrepignore changed since the run base/m);
@@ -635,7 +638,7 @@ test('a suppression file that is unchanged since the run base is applied and fla
   assert.equal(trace(repo, ['check', '--step', 'security', '--security', 'secrets'], env).code, 0);
 });
 
-test('a suppression file fails the scan when it is gitignored, has other case, is a symlink, or is present in a run with no base', () => {
+test('a suppression file fails the scan when it is gitignored, has other case, is a symlink, or is present in a run with no base; an ignored dependency dir does not count', () => {
   const env = { HIDKIT_PLUGIN_ROOT: suppressionPlugin() };
   const secrets = (repo) => trace(repo, ['check', '--step', 'security', '--security', 'secrets'], env);
 
@@ -646,6 +649,14 @@ test('a suppression file fails the scan when it is gitignored, has other case, i
   fs.rmSync(path.join(ignored, '.gitleaksignore'));
   fs.writeFileSync(path.join(ignored, '.GitleaksIgnore'), 'app.js:github-pat:1\n');
   assert.match(secrets(ignored).out, /^\.GitleaksIgnore changed since the run base/m);
+
+  const { repo: modules } = started();
+  commit(modules, '.gitignore', 'node_modules/\n');
+  fs.mkdirSync(path.join(modules, 'node_modules/x'), { recursive: true });
+  fs.writeFileSync(path.join(modules, 'node_modules/x/.semgrepignore'), '*\n');
+  fs.writeFileSync(path.join(modules, 'node_modules/x/requirements.txt'), 'jinja2==2.4.1\n');
+  const all = trace(modules, ['check', '--step', 'pass', '--security', 'all'], env);
+  assert.equal(all.code, 0, all.out);
 
   const linked = tempRepo();
   fs.writeFileSync(path.join(linked, 'list.txt'), 'app.js:github-pat:1\n');
@@ -667,4 +678,21 @@ test('a suppression file fails the scan when it is gitignored, has other case, i
   const noBase = secrets(unborn);
   assert.equal(noBase.code, 1);
   assert.match(noBase.out, /changed since the run base \(none\)/);
+});
+
+test('the dependencies scan fails when git ignores a tracked lockfile', () => {
+  const env = { HIDKIT_PLUGIN_ROOT: suppressionPlugin() };
+  const { repo, runId } = started();
+  fs.mkdirSync(path.join(repo, 'api'));
+  commit(repo, 'api/requirements.txt', 'jinja2==2.4.1\n');
+  const dependencies = () => trace(repo, ['check', '--step', 'security', '--security', 'dependencies'], env);
+  assert.equal(dependencies().code, 0);
+  commit(repo, '.gitignore', 'api/\n');
+  const hidden = dependencies();
+  assert.equal(hidden.code, 1);
+  assert.match(hidden.out, /^git ignores these tracked files, so dependencies does not scan them: api\/requirements\.txt\. The scan did not run\./m);
+  assert.doesNotMatch(hidden.out, /^ran /m);
+  assert.deepEqual(readEvents(repo, runId).find((e) => e.check_id === hidden.json().check_id).ignored_targets, ['api/requirements.txt']);
+  const flags = trace(repo, ['report']).json().runs[0].flags;
+  assert.ok(flags.includes(`check ${hidden.json().check_id} (dependencies) did not run: git ignores tracked scan targets: api/requirements.txt`), flags.join('\n'));
 });

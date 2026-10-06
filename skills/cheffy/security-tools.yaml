@@ -63,6 +63,8 @@ tools:
 checks:
   # Each command names a Hidkit config file in {skill-dir}, so the scanned repository cannot add an allowlist through a config file.
   # gitleaks and semgrep always read the suppression_files from the scanned repository. A suppression file that changed since <base> fails the scan.
+  # osv-scanner skips each file that git ignores. A tracked file that matches tracked_targets and that git ignores fails the scan.
+  # A pattern is relative to the scan dir. A pattern that starts with "/" is relative to the top of the repository.
   secrets:
     tool: gitleaks
     command: [gitleaks, dir, --config, "{skill-dir}/gitleaks.toml", --ignore-gitleaks-allow, "--redact=100", --no-banner, --exit-code, "1", "."]
@@ -70,11 +72,12 @@ checks:
   dependencies:
     tool: osv-scanner
     command: [osv-scanner, scan, source, -r, --allow-no-lockfiles, --config, "{skill-dir}/osv-scanner.toml", "."]
+    tracked_targets: ["/**/package-lock.json", "/**/pnpm-lock.yaml", "/**/yarn.lock", "/**/poetry.lock", "/**/uv.lock", "/**/requirements.txt", "/**/Pipfile.lock", "/**/go.sum", "/**/Cargo.lock", "/**/gradle.lockfile", "/**/pom.xml"]
   sast:
     tool: semgrep
     command: [semgrep, scan, --config, p/default, --error, --disable-nosem, --metrics=off, --disable-version-check, "."]
     delta_args: [--baseline-commit, "{base}"]
-    suppression_files: ["**/.semgrepignore"]
+    suppression_files: ["/**/.semgrepignore"]
 ecosystems:
   node: [package-lock.json, pnpm-lock.yaml, yarn.lock]
   python: [poetry.lock, uv.lock, requirements.txt, Pipfile.lock]

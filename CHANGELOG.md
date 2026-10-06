@@ -12,8 +12,12 @@ While the version is 0.x, the behavior of Cheffy and the ledger format can chang
   - gitleaks reads `gitleaks.toml` from the Hidkit skill directory, not `.gitleaks.toml` from the repository. It also ignores `gitleaks:allow` comments.
   - osv-scanner reads `osv-scanner.toml` from the Hidkit skill directory. It ignores each `osv-scanner.toml` file in the repository.
   - semgrep ignores `nosemgrep` comments.
-- gitleaks always reads `.gitleaksignore`, and semgrep always reads each `.semgrepignore`. No flag turns this off. When such a file changed since the run base, the scan does not run and fails. Untracked, ignored, and symlinked files count as changed. In a run with no base, each such file counts as changed.
-- `trace report` flags each scan that applied a suppression file from the repository. It also flags each scan that a changed suppression file stopped.
+- gitleaks always reads `.gitleaksignore`, and semgrep always reads each `.semgrepignore`. No flag turns this off. When such a file changed since the run base, the scan does not run and fails.
+  - Untracked and symlinked files count as changed. In a run with no base, each such file counts as changed.
+  - A file that git ignores counts only when its directory has tracked files. Then a `.semgrepignore` in `node_modules` does not fail the scan.
+  - semgrep reads each `.semgrepignore` in the repository, also from a subdirectory. The check covers the full repository.
+- osv-scanner skips each file that git ignores. When git ignores a tracked lockfile, the `dependencies` scan does not run and fails.
+- `trace report` flags each scan that applied a suppression file from the repository. It also flags each scan that a changed suppression file or an ignored lockfile stopped.
 - A registry command can name a file next to the registry as `{skill-dir}`.
 
 ## [0.1.0] - 2026-10-06

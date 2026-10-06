@@ -64,7 +64,9 @@ test('the real registry scans ignore allowlists that the scanned repository cont
   assert.deepEqual(secrets.suppression_files, ['.gitleaksignore']);
   assert.equal(configOf(dependencies.command), '{skill-dir}/osv-scanner.toml');
   assert.ok(sast.command.includes('--disable-nosem'));
-  assert.deepEqual(sast.suppression_files, ['**/.semgrepignore']);
+  assert.deepEqual(sast.suppression_files, ['/**/.semgrepignore']);
+  const lockfiles = Object.values(registry.ecosystems).flat().map((name) => `/**/${name}`);
+  assert.deepEqual(dependencies.tracked_targets, lockfiles);
   const settings = (file) => fs.readFileSync(new URL(`../skills/cheffy/${file}`, import.meta.url), 'utf8').split('\n').filter((l) => l.trim() && !l.startsWith('#'));
   assert.deepEqual(settings('gitleaks.toml'), ['title = "Hidkit"', '[extend]', 'useDefault = true']);
   assert.deepEqual(settings('osv-scanner.toml'), []);

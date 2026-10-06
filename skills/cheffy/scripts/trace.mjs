@@ -97,31 +97,41 @@ const singleCheckResult = ({ event, clean }) => ({
   text: `${outputTail(clean)}\n${JSON.stringify({ check_id: event.check_id, exit_code: event.exit_code, output_path: event.output_path, version_ok: event.version_ok })}`,
 });
 
+// Lists repository files by registry pattern. Paths are relative to the top of the repository.
+// A pattern is relative to the scan dir. A pattern that starts with "/" is relative to the top of the repository.
+// The match ignores case, because a case-insensitive file system gives .GITLEAKSIGNORE to a scanner that opens .gitleaksignore.
+function repoFiles(ctx, patterns) {
+  const top = { ...ctx, cwd: git(ctx, 'rev-parse', '--show-toplevel') };
+  const prefix = git(ctx, 'rev-parse', '--show-prefix');
+  const specs = patterns.map((pattern) => `:(glob,icase)${pattern.startsWith('/') ? pattern.slice(1) : `${prefix}${pattern}`}`);
+  return { top, list: (...args) => git(top, ...args, '-z', '--', ...specs).split('\0').filter(Boolean) };
+}
+
 // gitleaks and semgrep always read some suppression files from the scanned repository, and no flag turns that off.
 // A file is "changed" when it is untracked, is not a regular file, or differs from the run base. With no base, each file is changed.
+// A file that git ignores counts only when its directory has tracked files, so node_modules/x/.semgrepignore does not fail the scan.
 // A deleted file is not listed: the scan then suppresses less.
-// The match ignores case, because a case-insensitive file system gives .GITLEAKSIGNORE to a scanner that opens .gitleaksignore.
 function suppressionState(ctx, patterns) {
-  const specs = patterns.map((pattern) => `:(glob,icase)${pattern}`);
-  const list = (...args) => git(ctx, ...args).split('\0').filter(Boolean);
+  const { top, list } = repoFiles(ctx, patterns);
   const onDisk = (file) => {
     try {
-      return fs.lstatSync(path.join(ctx.cwd, file));
+      return fs.lstatSync(path.join(top.cwd, file));
     } catch (error) {
       if (error.code === 'ENOENT') return null;
       throw error;
     }
   };
-  const present = [...new Set(list('ls-files', '-z', '--cached', '--others', '--', ...specs))].filter((file) => onDisk(file)).sort();
+  const hasTracked = (file) => git(top, '--literal-pathspecs', 'ls-files', '--', `${path.posix.dirname(file)}/`) !== '';
+  const untracked = [...list('ls-files', '--others', '--exclude-standard'), ...list('ls-files', '--others', '--ignored', '--exclude-standard').filter(hasTracked)];
+  const present = [...new Set([...list('ls-files', '--cached'), ...untracked])].filter((file) => onDisk(file)).sort();
   const given = runStart(readEvents(ctx.root, ctx.runId)).base;
   const base = given && git(ctx, 'rev-parse', '--verify', '--quiet', '--end-of-options', `${given}^{commit}`);
-  const changed = new Set(base ? [
-    ...list('diff', '--name-only', '-z', '--relative', '--no-renames', base, '--', ...specs),
-    ...list('ls-files', '-z', '--others', '--', ...specs),
-    ...present.filter((file) => !onDisk(file).isFile()),
-  ] : present);
+  const changed = new Set(base ? [...list('diff', '--name-only', '--no-renames', base), ...untracked, ...present.filter((file) => !onDisk(file).isFile())] : present);
   return { changed: present.filter((file) => changed.has(file)), unchanged: present.filter((file) => !changed.has(file)), base };
 }
+
+// osv-scanner skips each file that git ignores, so a .gitignore entry can hide a tracked lockfile.
+const ignoredTargets = (ctx, patterns) => repoFiles(ctx, patterns).list('ls-files', '--cached', '--ignored', '--exclude-standard').sort();
 
 // Runs one command, records one check event (and a decision for a used waiver), and returns the event and the redacted output.
 function runCheck(ctx, step, argv, scan) {
@@ -129,6 +139,7 @@ function runCheck(ctx, step, argv, scan) {
   const checkId = newId('c');
   const startedAt = now();
   const suppression = security?.suppressionFiles?.length ? suppressionState(ctx, security.suppressionFiles) : null;
+  const ignored = security?.trackedTargets?.length ? ignoredTargets(ctx, security.trackedTargets) : null;
   let output;
   let exitCode;
   if (security?.toolName && security.installed === null) {
@@ -137,6 +148,9 @@ function runCheck(ctx, step, argv, scan) {
   } else if (suppression?.changed.length) {
     output = `${suppression.changed.join(', ')} changed since the run base (${suppression.base ?? 'none'}). ${security.toolName} always reads these files, so they can hide findings. `
       + 'The scan did not run. Ask the user to review the change.\n';
+    exitCode = 1;
+  } else if (ignored?.length) {
+    output = `git ignores these tracked files, so ${security.toolName} does not scan them: ${ignored.join(', ')}. The scan did not run. Ask the user to review the ignore rules.\n`;
     exitCode = 1;
   } else {
     const res = spawnSync(argv[0], argv.slice(1), { cwd: ctx.cwd, encoding: 'utf8', maxBuffer: MAX_OUTPUT_BYTES });
@@ -153,6 +167,7 @@ function runCheck(ctx, step, argv, scan) {
     type: 'check', check_id: checkId, step, command: argv.join(' '), security_check: name,
     ...(security && { security_source: security.source, config_sha256: project.sha256, delta_base: deltaBase }),
     ...(suppression && { suppression_files: { changed: suppression.changed, unchanged: suppression.unchanged } }),
+    ...(ignored && { ignored_targets: ignored }),
     tool_version: security?.installed ?? null, version_ok: security?.versionOk ?? null, waiver: security?.waiver ?? null,
     exit_code: exitCode, output_sha256: crypto.createHash('sha256').update(clean).digest('hex'),
     output_path: path.relative(ctx.root, logFile), started_at: startedAt, ended_at: now(),

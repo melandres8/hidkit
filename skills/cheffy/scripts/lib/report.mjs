@@ -47,6 +47,7 @@ export function summarizeRun(events, { today, withheldByRole = {}, checkRequired
     const { changed = [], unchanged = [] } = check.suppression_files ?? {};
     if (changed.length) flags.push(`${label} did not run: suppression files changed since the run base: ${changed.join(', ')}`);
     if (unchanged.length) flags.push(`${label} applied suppression files from the repository: ${unchanged.join(', ')}`);
+    if (check.ignored_targets?.length) flags.push(`${label} did not run: git ignores tracked scan targets: ${check.ignored_targets.join(', ')}`);
     if (usedWaiver(check, today)) {
       flags.push(`${label} passed only through its waiver: ${check.exit_code === 0 ? 'version mismatch' : `exit ${check.exit_code}`}`);
     }

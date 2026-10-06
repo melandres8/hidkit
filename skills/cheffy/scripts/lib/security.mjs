@@ -47,7 +47,8 @@ export function resolveSecurityCheck(name, config, registry, versionOf = install
   const pinned = String(tool.version);
   const command = definition.command.map((arg) => String(arg).replaceAll('{skill-dir}', skillDir));
   const suppressionFiles = (definition.suppression_files ?? []).map(String);
-  return { command, source: 'registry', toolName: definition.tool, installed, pinned, versionOk: installed === null ? null : installed === pinned, waiver, suppressionFiles };
+  const trackedTargets = (definition.tracked_targets ?? []).map(String);
+  return { command, source: 'registry', toolName: definition.tool, installed, pinned, versionOk: installed === null ? null : installed === pinned, waiver, suppressionFiles, trackedTargets };
 }
 
 // A registry scan with delta_args reports only findings that are new since <base>: the args go before the scan target.
