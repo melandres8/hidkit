@@ -6,6 +6,21 @@ While the version is 0.x, the behavior of Cheffy and the ledger format can chang
 
 ## [Unreleased]
 
+### Security
+
+- The scanned repository can no longer hide a finding from the security baseline with its own allowlist.
+  - gitleaks reads `gitleaks.toml` from the Hidkit skill directory, not `.gitleaks.toml` from the repository. It also ignores `gitleaks:allow` comments.
+  - osv-scanner reads `osv-scanner.toml` from the Hidkit skill directory. It ignores each `osv-scanner.toml` file in the repository.
+  - semgrep ignores `nosemgrep` comments.
+- gitleaks always reads `.gitleaksignore`, and semgrep always reads each `.semgrepignore`. No flag turns this off. When such a file changed since the run base, the scan does not run and fails.
+  - Untracked and symlinked files count as changed. In a run with no base, each such file counts as changed.
+  - A file that git ignores counts only when its directory has tracked files. Then a `.semgrepignore` in `node_modules` does not fail the scan.
+  - semgrep reads each `.semgrepignore` in the repository, also from a subdirectory. The check covers the full repository.
+- osv-scanner skips each file that git ignores. When git ignores a tracked lockfile, the `dependencies` scan does not run and fails.
+- `trace report` flags each scan that applied a suppression file from the repository. It also flags each scan that a changed suppression file or an ignored lockfile stopped.
+- The `secrets` scan also runs `gitleaks git` on each commit since the run base. It finds a secret that a later commit removed. The work-tree scan does not find that secret. In a run with no base, it scans each commit.
+- A registry command can name a file next to the registry as `{skill-dir}`.
+
 ## [0.1.0] - 2026-10-06
 
 First pre-release. Phase 1 is in progress. The exit criterion of phase 1 is quality above plain Claude Code at a cost of 2 times the baseline or less. That criterion is not met yet. The last measurement showed no regression. The quality gain was below the noise, and the cost was 3.6 to 4.5 times the baseline.

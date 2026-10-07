@@ -61,16 +61,25 @@ tools:
         sha256: "b529c4db63f293918989b84ce4640f12f1b1e4680d9e7fcab5f3554f9113dfc5"
         command: "python3 -m venv ~/.local/share/hidkit/semgrep && ~/.local/share/hidkit/semgrep/bin/pip install --require-hashes --no-deps --only-binary :all: -r \"{skill-dir}/semgrep-requirements.txt\" && mkdir -p ~/.local/bin && ln -sf ~/.local/share/hidkit/semgrep/bin/semgrep ~/.local/bin/semgrep"
 checks:
+  # Each command names a Hidkit config file in {skill-dir}, so the scanned repository cannot add an allowlist through a config file.
+  # gitleaks and semgrep always read the suppression_files from the scanned repository. A suppression file that changed since <base> fails the scan.
+  # osv-scanner skips each file that git ignores. A tracked file that matches tracked_targets and that git ignores fails the scan.
+  # A pattern is relative to the scan dir. A pattern that starts with "/" is relative to the top of the repository.
   secrets:
     tool: gitleaks
-    command: [gitleaks, dir, ".", "--redact=100", --no-banner, --exit-code, "1"]
+    command: [gitleaks, dir, --config, "{skill-dir}/gitleaks.toml", --ignore-gitleaks-allow, "--redact=100", --no-banner, --exit-code, "1", "."]
+    # The dir scan reads the work tree. The history scan reads each commit since <base>, so it finds a secret that a later commit removed.
+    history_command: [gitleaks, git, "--log-opts={range}", --config, "{skill-dir}/gitleaks.toml", --ignore-gitleaks-allow, "--redact=100", --no-banner, --exit-code, "1", "."]
+    suppression_files: [.gitleaksignore]
   dependencies:
     tool: osv-scanner
-    command: [osv-scanner, scan, source, -r, --allow-no-lockfiles, "."]
+    command: [osv-scanner, scan, source, -r, --allow-no-lockfiles, --config, "{skill-dir}/osv-scanner.toml", "."]
+    tracked_targets: ["/**/package-lock.json", "/**/pnpm-lock.yaml", "/**/yarn.lock", "/**/poetry.lock", "/**/uv.lock", "/**/requirements.txt", "/**/Pipfile.lock", "/**/go.sum", "/**/Cargo.lock", "/**/gradle.lockfile", "/**/pom.xml"]
   sast:
     tool: semgrep
-    command: [semgrep, scan, --config, p/default, --error, --metrics=off, --disable-version-check, "."]
+    command: [semgrep, scan, --config, p/default, --error, --disable-nosem, --metrics=off, --disable-version-check, "."]
     delta_args: [--baseline-commit, "{base}"]
+    suppression_files: ["/**/.semgrepignore"]
 ecosystems:
   node: [package-lock.json, pnpm-lock.yaml, yarn.lock]
   python: [poetry.lock, uv.lock, requirements.txt, Pipfile.lock]

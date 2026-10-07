@@ -55,6 +55,26 @@ test('the real registry pins and verifies every install on the four supported pl
   }
 });
 
+test('the real registry scans ignore allowlists that the scanned repository controls', () => {
+  const registry = parseYaml(fs.readFileSync(new URL('../skills/cheffy/security-tools.yaml', import.meta.url), 'utf8'));
+  const { secrets, dependencies, sast } = registry.checks;
+  const configOf = (command) => command[command.indexOf('--config') + 1];
+  assert.equal(configOf(secrets.command), '{skill-dir}/gitleaks.toml');
+  assert.ok(secrets.command.includes('--ignore-gitleaks-allow'));
+  assert.deepEqual(secrets.suppression_files, ['.gitleaksignore']);
+  assert.deepEqual(secrets.history_command.slice(0, 3), ['gitleaks', 'git', '--log-opts={range}']);
+  assert.equal(configOf(secrets.history_command), '{skill-dir}/gitleaks.toml');
+  assert.ok(secrets.history_command.includes('--ignore-gitleaks-allow'));
+  assert.equal(configOf(dependencies.command), '{skill-dir}/osv-scanner.toml');
+  assert.ok(sast.command.includes('--disable-nosem'));
+  assert.deepEqual(sast.suppression_files, ['/**/.semgrepignore']);
+  const lockfiles = Object.values(registry.ecosystems).flat().map((name) => `/**/${name}`);
+  assert.deepEqual(dependencies.tracked_targets, lockfiles);
+  const settings = (file) => fs.readFileSync(new URL(`../skills/cheffy/${file}`, import.meta.url), 'utf8').split('\n').filter((l) => l.trim() && !l.startsWith('#'));
+  assert.deepEqual(settings('gitleaks.toml'), ['title = "Hidkit"', '[extend]', 'useDefault = true']);
+  assert.deepEqual(settings('osv-scanner.toml'), []);
+});
+
 test('the semgrep lock pins the registry version with hashes for every package', () => {
   const registry = parseYaml(fs.readFileSync(new URL('../skills/cheffy/security-tools.yaml', import.meta.url), 'utf8'));
   const lock = fs.readFileSync(new URL('../skills/cheffy/semgrep-requirements.txt', import.meta.url), 'utf8');

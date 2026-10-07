@@ -4,7 +4,7 @@ Gate 11 of [the pass](pass.md) applies these rules.
 
 ## Baseline
 
-The baseline is three scans: `secrets`, `dependencies`, and `sast`. One call runs all three and records one `check` for each scan. On a clean work tree, `sast` reports only findings that are new since `<base>`. With uncommitted changes, it scans the whole repository.
+The baseline is three scans: `secrets`, `dependencies`, and `sast`. One call runs all three and records one `check` for each scan. `secrets` also scans each commit since `<base>`. On a clean work tree, `sast` reports only findings that are new since `<base>`. With uncommitted changes, it scans the whole repository.
 
 ```bash
 node <trace> check --step pass --security all
@@ -14,8 +14,9 @@ node <trace> check --step pass --security all
 
 - The security registry, `security-tools.yaml`, maps each scan to a pinned tool. The `security.checks` key in `hidkit.config.yaml` overrides it with a command list. An override has no version pinning, so its `version_ok` is null.
 - Each security `check` records `tool_version`. A version that does not match the registry fails gate 11.
-- A missing tool fails gate 11. Gate 11 never passes on a missing tool.
-- `node <skill-dir>/scripts/doctor.mjs` lists missing tools and prints pinned install commands for the user.
+- A missing tool fails gate 11.
+- A suppression file, such as `.gitleaksignore`, that changed since `<base>` fails the scan.
+- `node <skill-dir>/scripts/doctor.mjs` lists missing tools and prints pinned install commands.
 - Cheffy MUST NOT install or download tools. Propose the tool. The user installs it or writes a waiver.
 - Each install command checks the sha256 of each download. For semgrep, pip checks every package against `semgrep-requirements.txt`.
 
