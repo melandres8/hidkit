@@ -6,6 +6,10 @@ While the version is 0.x, the behavior of Cheffy and the ledger format can chang
 
 ## [Unreleased]
 
+### Added
+
+- Fill-me-in, a skill that briefs the user on the work of the session. It states the idea of the change, groups the files into parts, and shows the key moves as phases. A script, `map.mjs`, finds the parts and the code that refers to them, and a diagram shows the connections.
+
 ### Security
 
 - The scanned repository can no longer hide a finding from the security baseline with its own allowlist.
