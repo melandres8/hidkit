@@ -68,6 +68,8 @@ checks:
   secrets:
     tool: gitleaks
     command: [gitleaks, dir, --config, "{skill-dir}/gitleaks.toml", --ignore-gitleaks-allow, "--redact=100", --no-banner, --exit-code, "1", "."]
+    # The dir scan reads the work tree. The history scan reads each commit since <base>, so it finds a secret that a later commit removed.
+    history_command: [gitleaks, git, "--log-opts={range}", --config, "{skill-dir}/gitleaks.toml", --ignore-gitleaks-allow, "--redact=100", --no-banner, --exit-code, "1", "."]
     suppression_files: [.gitleaksignore]
   dependencies:
     tool: osv-scanner

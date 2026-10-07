@@ -571,7 +571,7 @@ function suppressionPlugin() {
   const tool = (name) => `  ${name}:\n    version: "1.0.0"\n    version_command: [node, -e, "console.log('1.0.0')"]\n`;
   const check = (name, extra = '') => `  ${name}:\n    tool: ${name}\n    command: [node, -e, "console.log('ran', process.argv.slice(1).join(' '))", "--", --config, "{skill-dir}/${name}.toml", "."]\n${extra}`;
   fs.writeFileSync(path.join(plugin, 'skills/cheffy/security-tools.yaml'), `tools:\n${tool('secrets')}${tool('dependencies')}${tool('sast')}checks:\n`
-    + `${check('secrets', '    suppression_files: [.gitleaksignore]\n')}${check('dependencies', '    tracked_targets: ["/**/requirements.txt"]\n')}${check('sast', '    suppression_files: ["/**/.semgrepignore"]\n')}`);
+    + `${check('secrets', `    suppression_files: [.gitleaksignore]\n    history_command: [node, -e, "console.log('history ran', process.argv.slice(1).join(' ')); process.exit(Number(process.env.HISTORY_EXIT ?? 0))", "--", "--log-opts={range}", --config, "{skill-dir}/secrets.toml", "."]\n`)}${check('dependencies', '    tracked_targets: ["/**/requirements.txt"]\n')}${check('sast', '    suppression_files: ["/**/.semgrepignore"]\n')}`);
   return plugin;
 }
 
@@ -591,7 +591,8 @@ test('a registry scan reads its config from the skill dir and fails on a suppres
   const untracked = secrets();
   assert.equal(untracked.code, 1);
   assert.match(untracked.out, /\.gitleaksignore changed since the run base .*The scan did not run/);
-  assert.doesNotMatch(untracked.out, /^ran /m);
+  assert.doesNotMatch(untracked.out, /^(history )?ran /m);
+  assert.equal(event(untracked).history_command, undefined);
   assert.deepEqual(event(untracked).suppression_files, { changed: ['.gitleaksignore'], unchanged: [] });
 
   commit(repo, '.gitleaksignore', 'app.js:github-pat:1\n');
@@ -695,4 +696,46 @@ test('the dependencies scan fails when git ignores a tracked lockfile', () => {
   assert.deepEqual(readEvents(repo, runId).find((e) => e.check_id === hidden.json().check_id).ignored_targets, ['api/requirements.txt']);
   const flags = trace(repo, ['report']).json().runs[0].flags;
   assert.ok(flags.includes(`check ${hidden.json().check_id} (dependencies) did not run: git ignores tracked scan targets: api/requirements.txt`), flags.join('\n'));
+});
+
+test('the secrets scan also scans the commits since the run base and fails on a finding there', () => {
+  const plugin = suppressionPlugin();
+  const env = { HIDKIT_PLUGIN_ROOT: plugin };
+  const { repo, runId } = started();
+  const base = readEvents(repo, runId).find((e) => e.type === 'run_start').base;
+  const secrets = (extra = {}) => trace(repo, ['check', '--step', 'security', '--security', 'secrets'], { ...env, ...extra });
+  const event = (r) => readEvents(repo, runId).find((e) => e.check_id === r.json().check_id);
+
+  commit(repo, 'a.txt', 'a\n');
+  const head = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: repo, encoding: 'utf8' }).trim();
+  const clean = secrets();
+  assert.equal(clean.code, 0, clean.out);
+  assert.match(clean.out, new RegExp(`^history scan of ${base}\\.\\.${head}:$`, 'm'));
+  assert.equal(event(clean).history_range, `${base}..${head}`);
+  assert.match(event(clean).history_command, new RegExp(`--log-opts=${base}\\.\\.${head} --config ${path.join(plugin, 'skills/cheffy/secrets.toml').replaceAll('.', '\\.')} \\.$`));
+
+  const found = secrets({ HISTORY_EXIT: '1' });
+  assert.equal(found.code, 1);
+  const all = trace(repo, ['check', '--step', 'pass', '--security', 'all'], { ...env, HISTORY_EXIT: '1' });
+  assert.deepEqual(all.json().failed, ['secrets']);
+  const head2 = trace(repo, ['verify-head', '--', node, '-e', '0'], { ...env, HISTORY_EXIT: '1' });
+  assert.deepEqual(head2.json().security_failed, ['secrets']);
+});
+
+test('the history scan covers each commit in a run with no base and is skipped with no commit', () => {
+  const env = { HIDKIT_PLUGIN_ROOT: suppressionPlugin() };
+  const repo = tempDir('hidkit-unborn-');
+  execFileSync('git', ['init', '-q'], { cwd: repo });
+  assert.equal(trace(repo, ['setup']).code, 0);
+  const runId = trace(repo, startArgs()).json().run_id;
+  const secrets = () => trace(repo, ['check', '--step', 'security', '--security', 'secrets'], env);
+  const event = (r) => readEvents(repo, runId).find((e) => e.check_id === r.json().check_id);
+  const none = secrets();
+  assert.equal(none.code, 0, none.out);
+  assert.equal(event(none).history_command, undefined);
+  commit(repo, 'a.txt', 'a\n');
+  const head = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: repo, encoding: 'utf8' }).trim();
+  const first = secrets();
+  assert.equal(first.code, 0, first.out);
+  assert.equal(event(first).history_range, head);
 });

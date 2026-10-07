@@ -62,6 +62,9 @@ test('the real registry scans ignore allowlists that the scanned repository cont
   assert.equal(configOf(secrets.command), '{skill-dir}/gitleaks.toml');
   assert.ok(secrets.command.includes('--ignore-gitleaks-allow'));
   assert.deepEqual(secrets.suppression_files, ['.gitleaksignore']);
+  assert.deepEqual(secrets.history_command.slice(0, 3), ['gitleaks', 'git', '--log-opts={range}']);
+  assert.equal(configOf(secrets.history_command), '{skill-dir}/gitleaks.toml');
+  assert.ok(secrets.history_command.includes('--ignore-gitleaks-allow'));
   assert.equal(configOf(dependencies.command), '{skill-dir}/osv-scanner.toml');
   assert.ok(sast.command.includes('--disable-nosem'));
   assert.deepEqual(sast.suppression_files, ['/**/.semgrepignore']);

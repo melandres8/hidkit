@@ -18,6 +18,7 @@ While the version is 0.x, the behavior of Cheffy and the ledger format can chang
   - semgrep reads each `.semgrepignore` in the repository, also from a subdirectory. The check covers the full repository.
 - osv-scanner skips each file that git ignores. When git ignores a tracked lockfile, the `dependencies` scan does not run and fails.
 - `trace report` flags each scan that applied a suppression file from the repository. It also flags each scan that a changed suppression file or an ignored lockfile stopped.
+- The `secrets` scan also runs `gitleaks git` on each commit since the run base. It finds a secret that a later commit removed. The work-tree scan does not find that secret. In a run with no base, it scans each commit.
 - A registry command can name a file next to the registry as `{skill-dir}`.
 
 ## [0.1.0] - 2026-10-06

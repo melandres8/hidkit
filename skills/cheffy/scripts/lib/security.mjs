@@ -45,10 +45,12 @@ export function resolveSecurityCheck(name, config, registry, versionOf = install
   if (!tool) throw new TraceError(`security-tools.yaml has no tool "${definition.tool}"`);
   const installed = versionOf(tool.version_command);
   const pinned = String(tool.version);
-  const command = definition.command.map((arg) => String(arg).replaceAll('{skill-dir}', skillDir));
+  const withSkillDir = (args) => args.map((arg) => String(arg).replaceAll('{skill-dir}', skillDir));
+  const command = withSkillDir(definition.command);
+  const historyCommand = definition.history_command ? withSkillDir(definition.history_command) : null;
   const suppressionFiles = (definition.suppression_files ?? []).map(String);
   const trackedTargets = (definition.tracked_targets ?? []).map(String);
-  return { command, source: 'registry', toolName: definition.tool, installed, pinned, versionOk: installed === null ? null : installed === pinned, waiver, suppressionFiles, trackedTargets };
+  return { command, source: 'registry', toolName: definition.tool, installed, pinned, versionOk: installed === null ? null : installed === pinned, waiver, suppressionFiles, trackedTargets, historyCommand };
 }
 
 // A registry scan with delta_args reports only findings that are new since <base>: the args go before the scan target.
