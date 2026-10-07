@@ -6,6 +6,10 @@ While the version is 0.x, the behavior of Cheffy and the ledger format can chang
 
 ## [Unreleased]
 
+### Added
+
+- Fill-me-in, a skill that briefs the user on the work of the session. It shows what changed, how the change connects to the existing code, and each move, with a diagram.
+
 ### Security
 
 - The scanned repository can no longer hide a finding from the security baseline with its own allowlist.
