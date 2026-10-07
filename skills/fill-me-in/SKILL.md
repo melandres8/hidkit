@@ -1,6 +1,6 @@
 ---
 name: fill-me-in
-description: Use this skill when the user wants a briefing on the work of this session. It explains what changed, how the change connects to the existing code, and which moves happened, with a diagram. Use it for "fill me in", "catch me up", "what did you do", "walk me through the changes", "ponme al tanto", "qué se hizo", "qué hiciste", "cómo se conecta con lo que ya existe", or "explícame los movimientos", or "con diagrama visual", even when the user does not name the skill.
+description: Use this skill when the user wants a briefing on the work of this session. It explains what changed, how the change connects to the existing code, and which moves happened, with a diagram. Use it for "fill me in", "catch me up", "what did you do", "walk me through the changes", "ponme al tanto", "qué se hizo", "qué hiciste", "cómo se conecta con lo que ya existe", or "explícame los movimientos", even when the user does not name the skill.
 ---
 # Fill me in
 
@@ -39,13 +39,11 @@ Draw a diagram of the change and its connections.
 - Group small files into one node when the diagram has too many nodes.
 - Write the node labels in the language of the user. Keep file names and code names as they are.
 
-By default, write a fenced `mermaid` block in the reply. Use 12 nodes or fewer. Use `classDef` for the three states, and put the legend in a `subgraph`.
+The harness is the one that your system context names. Read the `show-diagram` row of its harness map, at `../cheffy/references/harness/<harness>.md`. Then pick the form:
 
-Draw a visual diagram only when the user asks for one, such as "con diagrama visual" or "show it visually". The visual tool costs about 16,000 tokens of context.
-
-- The harness is the one that your system context names. Read the `show-diagram` row of its harness map, at `../cheffy/references/harness/<harness>.md`.
-- If the harness has no visual tool, tell the user, and write the `mermaid` block.
-- With the visual tool, use 6 nodes or fewer in each diagram. For more nodes, draw one overview diagram, then one detail diagram for each part.
+- **Visual tool.** Use it whenever the harness has one. Use 6 nodes or fewer in each diagram. For more nodes, draw one overview diagram, then one detail diagram for each part.
+- **Text diagram.** Use it when the harness has no visual tool. Draw a tree with `├─`, `└─`, and `→` in a fenced `text` block. Put the state in brackets before each node, such as `[new]`.
+- **Mermaid.** Use a fenced `mermaid` block only in a file or a PR that GitHub renders. Use `classDef` for the states, and put the legend in a `subgraph`.
 
 ## Reply
 
