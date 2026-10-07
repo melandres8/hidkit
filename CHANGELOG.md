@@ -8,7 +8,7 @@ While the version is 0.x, the behavior of Cheffy and the ledger format can chang
 
 ### Added
 
-- Fill-me-in, a skill that briefs the user on the work of the session. It shows what changed, how the change connects to the existing code, and each move, with a diagram.
+- Fill-me-in, a skill that briefs the user on the work of the session. It states the idea of the change, groups the files into parts, and shows the key moves as phases. A script, `map.mjs`, finds the parts and the code that refers to them, and a diagram shows the connections.
 
 ### Security
 
