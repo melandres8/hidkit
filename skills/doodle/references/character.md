@@ -39,7 +39,7 @@ Stack the body, the head, and one face with the same transform:
 
 ## Hand-drawn parts
 
-- Draw a hand-drawn body in the same style: a short sweater with a ribbed hem, trousers, black shoes, and round hands.
+- Draw a hand-drawn body in the same style: a short ribbed sweater, trousers, black shoes, and round hands.
 - Keep the sweater above the hips, and draw each trouser leg as a shape. A long sweater over thin legs reads as a skirt.
 - Give each skin area a paper base first, with `fill="#fff"` and no stroke. Then draw the same shape with `fill="url(#doodle-stipple-dense)"`.
 - Give each facial line on the skin a paper-colored halo. Draw the line first with `stroke="#fff"`, 4 units wider, and then in black.
