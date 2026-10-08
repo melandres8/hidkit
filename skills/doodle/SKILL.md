@@ -44,6 +44,7 @@ The sizes come from third-party guides, not from the Substack help pages. Not ve
 - `<skill-dir>` is the directory of this file.
 - `<dir>` is the directory that the user names. Otherwise use the scratchpad directory of the session. Otherwise use `doodles/` in the working directory.
 - The script checks the colors, adds the ink filter and a white sheet, and writes `<slug>.final.svg` and `<slug>.png`.
+- The script adds a second, thinner pen line under the drawing. Add `--single` when the user wants cleaner lines.
 - When the script finds no browser, it writes only the SVG. Tell the user that the PNG needs Chrome, Chromium, or Edge.
 
 ## Reply

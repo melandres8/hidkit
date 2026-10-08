@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Checks a doodle SVG, adds the ink filter and a white sheet, and exports a PNG with headless Chrome.
-// Usage: node ink.mjs --preset <cover|wide|inline|spot> [--out <dir>] [--seed <n>] <drawing.svg>
+// Usage: node ink.mjs --preset <cover|wide|inline|spot> [--out <dir>] [--seed <n>] [--single] <drawing.svg>
 // Prints the path of the final SVG and of the PNG, one per line.
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -78,8 +78,10 @@ export function sizeFor(preset, box) {
 }
 
 // Returns the final SVG: the root gets the pixel size, a white sheet, and the ink filter around the drawing.
-// The filter moves each line by a small random offset, so the strokes wobble like a pen on paper.
-export function inkSvg(svg, { preset, seed = 1 }) {
+// The filter moves each line by a small random offset, so the strokes wobble like a pen on paper. With `retrace`,
+// a second copy of the lines sits under the drawing with other offsets, like a pen that goes over a line twice.
+// The second copy leaves out the text, so labels stay sharp.
+export function inkSvg(svg, { preset, seed = 1, retrace = true }) {
   const rootTag = svg.match(/<svg\b[^>]*>/i)[0];
   const box = viewBox(rootTag);
   const { width, height } = sizeFor(preset, box);
@@ -88,15 +90,23 @@ export function inkSvg(svg, { preset, seed = 1 }) {
   if (!/\sxmlns\s*=/.test(root)) root = root.replace(/<svg\b/i, '<svg xmlns="http://www.w3.org/2000/svg"');
   const unit = box.w / 1000;
   const r = (n) => Math.round(n * 1000) / 1000;
-  const defs = `<defs><filter id="doodle-ink" x="-5%" y="-5%" width="110%" height="110%">`
-    + `<feTurbulence type="fractalNoise" baseFrequency="${r(0.02 / unit)}" numOctaves="3" seed="${seed}" result="noise"/>`
-    + `<feDisplacementMap in="SourceGraphic" in2="noise" scale="${r(6 * unit)}" xChannelSelector="R" yChannelSelector="G"/>`
-    + '</filter></defs>';
+  const noise = (frequency, octaves, scale, s) =>
+    `<feTurbulence type="fractalNoise" baseFrequency="${r(frequency / unit)}" numOctaves="${octaves}" seed="${s}" result="noise"/>`
+    + `<feDisplacementMap in="SourceGraphic" in2="noise" scale="${r(scale * unit)}" xChannelSelector="R" yChannelSelector="G"/>`;
+  const region = 'x="-5%" y="-5%" width="110%" height="110%"';
+  const ink = `<filter id="doodle-ink" ${region}>${noise(0.02, 3, 6, seed)}</filter>`;
+  // The second pen line is thinner (erode) and sits a little off the first one (offset).
+  const second = `<filter id="doodle-retrace" ${region}>${noise(0.008, 2, 16, seed + 101)}`
+    + `<feMorphology operator="erode" radius="${r(0.6 * unit)}"/><feOffset dx="${r(2 * unit)}" dy="${r(-1.5 * unit)}"/></filter>`;
+  const defs = `<defs>${ink}${retrace ? second : ''}</defs>`;
   const sheet = `<rect x="${box.x}" y="${box.y}" width="${box.w}" height="${box.h}" fill="#fff"/>`;
   const start = svg.indexOf(rootTag);
   const end = svg.lastIndexOf('</svg>');
   const body = svg.slice(start + rootTag.length, end);
-  return `${root}${defs}${sheet}<g filter="url(#doodle-ink)">${body}</g></svg>\n`;
+  const under = retrace
+    ? `<g filter="url(#doodle-retrace)">${body.replace(/<text\b[\s\S]*?<\/text>/gi, '').replace(/\sid\s*=\s*("[^"]*"|'[^']*')/gi, '')}</g>`
+    : '';
+  return `${root}${defs}${sheet}${under}<g filter="url(#doodle-ink)">${body}</g></svg>\n`;
 }
 
 // Finds a Chrome, Chromium, or Edge binary. DOODLE_CHROME overrides the search.
@@ -133,15 +143,17 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
   let preset;
   let out;
   let seed = 1;
+  let retrace = true;
   const files = [];
   const usage = (reason) => {
-    console.error(`ink.mjs: ${reason}\nusage: ink.mjs --preset <${Object.keys(PRESETS).join('|')}> [--out <dir>] [--seed <n>] <drawing.svg>`);
+    console.error(`ink.mjs: ${reason}\nusage: ink.mjs --preset <${Object.keys(PRESETS).join('|')}> [--out <dir>] [--seed <n>] [--single] <drawing.svg>`);
     process.exit(2);
   };
   for (let i = 0; i < args.length; i += 1) {
     if (args[i] === '--preset') preset = args[++i];
     else if (args[i] === '--out') out = args[++i] ?? usage('--out needs a directory');
     else if (args[i] === '--seed') seed = Number(args[++i]);
+    else if (args[i] === '--single') retrace = false;
     else files.push(args[i]);
   }
   if (!Object.hasOwn(PRESETS, preset ?? '')) usage(`--preset must be one of ${Object.keys(PRESETS).join(', ')}`);
@@ -162,7 +174,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
   const name = path.basename(input).replace(/\.svg$/i, '');
   const finalSvg = path.resolve(dir, `${name}.final.svg`);
   const png = path.resolve(dir, `${name}.png`);
-  const inked = inkSvg(svg, { preset, seed });
+  const inked = inkSvg(svg, { preset, seed, retrace });
   fs.writeFileSync(finalSvg, inked);
   console.log(finalSvg);
 

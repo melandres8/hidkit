@@ -48,13 +48,24 @@ test('sizeFor uses the preset size and takes the inline height from the viewBox'
 });
 
 test('inkSvg sets the size, adds a white sheet, and wraps the drawing in the ink filter', () => {
-  const out = inkSvg(drawing(CUP, 'viewBox="0 0 1456 1048" width="50" height="50"'), { preset: 'cover', seed: 7 });
+  const out = inkSvg(drawing(CUP, 'viewBox="0 0 1456 1048" width="50" height="50"'), { preset: 'cover', seed: 7, retrace: false });
   assert.match(out, /^<svg width="1456" height="1048" xmlns="http:\/\/www.w3.org\/2000\/svg" viewBox="0 0 1456 1048">/);
   assert.ok(!out.includes('width="50"'));
   assert.match(out, /<filter id="doodle-ink"[^>]*>.*seed="7"/);
   assert.match(out, /<rect x="0" y="0" width="1456" height="1048" fill="#fff"\/><g filter="url\(#doodle-ink\)"><path d="M100 100/);
   assert.match(out, /<\/g><\/svg>\n$/);
   assert.deepEqual(checkSvg(out.trim()), []);
+});
+
+test('inkSvg adds a second pen line without the text and without duplicate ids', () => {
+  const out = inkSvg(drawing(`<path id="a" d="M0 0 L 9 9"/>${CUP}`), { preset: 'cover', seed: 7 });
+  assert.match(out, /<filter id="doodle-retrace"[^>]*>.*seed="108".*feMorphology operator="erode"/);
+  const under = out.match(/<g filter="url\(#doodle-retrace\)">(.*?)<\/g><g filter="url\(#doodle-ink\)">/s);
+  assert.ok(under, 'the second line sits under the drawing');
+  assert.ok(under[1].includes('M100 100'));
+  assert.ok(!under[1].includes('<text'));
+  assert.equal((out.match(/id="a"/g) ?? []).length, 1);
+  assert.equal((out.match(/coffee/g) ?? []).length, 1);
 });
 
 test('findChrome honors DOODLE_CHROME and returns null when nothing is found', () => {
@@ -75,6 +86,11 @@ test('the CLI writes the final SVG and refuses a bad drawing or preset', () => {
   assert.equal(r.status, 0, r.stderr);
   assert.equal(r.stdout.trim(), path.join(dir, 'cup.final.svg'));
   assert.match(r.stderr, /PNG was not made/);
+  assert.match(fs.readFileSync(path.join(dir, 'cup.final.svg'), 'utf8'), /doodle-retrace/);
+
+  const single = run(['--preset', 'cover', '--single', ok], { DOODLE_CHROME: path.join(dir, 'missing') });
+  assert.equal(single.status, 0, single.stderr);
+  assert.ok(!fs.readFileSync(path.join(dir, 'cup.final.svg'), 'utf8').includes('doodle-retrace'));
 
   const bad = path.join(dir, 'red.svg');
   fs.writeFileSync(bad, drawing('<circle r="5" fill="red"/>'));
