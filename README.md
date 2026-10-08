@@ -64,7 +64,7 @@ Security has the highest priority in Hidkit.
 | `skills/cheffy/` | Cheffy: `SKILL.md`, the pass, recipes, principles, security rules, and harness maps. |
 | `skills/cheffy/scripts/` | `trace.mjs` (the ledger and the checks), `lint.mjs`, and `doctor.mjs`. |
 | `skills/plating/` | The writing standard for every reply and prose file. |
-| `skills/fill-me-in/` | A briefing on the work of the session, with a diagram of the change and its connections. |
+| `skills/fill-me-in/` | A briefing on the work of the session as an HTML page, with a diagram of the change and its connections. |
 | `agents/` | The roles: investigator, implementer, critic, verifier, and judge. |
 | `GLOSSARY.md` | The defined terms. |
 | `test/` | Unit tests. |

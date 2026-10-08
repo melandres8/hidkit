@@ -75,6 +75,17 @@ export function termsFor(file) {
   return [base, `/${stem}`];
 }
 
+// Resolves `base` to a commit id. Returns null when `base` is not a commit. A base that starts with "-" would reach
+// git as an option, so the function accepts only a name that resolves to a commit.
+export function resolveBase(root, base) {
+  if (typeof base !== 'string' || base === '' || base.startsWith('-')) return null;
+  try {
+    return git(root, ['rev-parse', '--verify', '--quiet', '--end-of-options', `${base}^{commit}`]).trim();
+  } catch {
+    return null;
+  }
+}
+
 function ownerOf(groups) {
   const owner = new Map();
   for (const [dir, members] of groups) for (const file of members) owner.set(file, dir);
@@ -147,12 +158,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
   if (files.length === 0) usage('no files');
   if (!Number.isInteger(max) || max < 2) usage('--max must be an integer of 2 or more');
   const root = git(process.cwd(), ['rev-parse', '--show-toplevel']).trim();
-  // A base that starts with "-" would reach git as an option, so accept only a name that resolves to a commit.
-  if (typeof base !== 'string' || base.startsWith('-')) usage('--base needs a commit');
-  try {
-    base = git(root, ['rev-parse', '--verify', '--quiet', '--end-of-options', `${base}^{commit}`]).trim();
-  } catch {
-    usage(`--base ${base} is not a commit`);
-  }
-  console.log(JSON.stringify(mapChange({ root, files, base, max })));
+  const commit = resolveBase(root, base);
+  if (!commit) usage(typeof base === 'string' && !base.startsWith('-') ? `--base ${base} is not a commit` : '--base needs a commit');
+  console.log(JSON.stringify(mapChange({ root, files, base: commit, max })));
 }
