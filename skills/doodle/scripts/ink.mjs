@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Checks a doodle SVG, adds the ink filter and a white sheet, and exports a PNG with headless Chrome.
-// Usage: node ink.mjs --preset <cover|wide|inline|spot> [--paper <newsprint|sketchbook|kraft|white>] [--out <dir>] [--seed <n>] [--single] <drawing.svg>
+// Usage: node ink.mjs --preset <cover|wide|inline|spot> [--paper <newsprint|sketchbook|kraft|white>] [--out <dir>] [--seed <n>] [--single] [--material <light|full|none>] <drawing.svg>
 // Prints the path of the final SVG and of the PNG, one per line.
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -88,13 +88,113 @@ export const PAPERS = {
 
 const rgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
 
+// A small seeded random generator (mulberry32), so the same seed gives the same page.
+function random(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// The fills that a drawing can use with fill="url(#doodle-...)". Each is a tile of dots or lines.
+export const FILLS = ['doodle-stipple', 'doodle-stipple-dense', 'doodle-hatch', 'doodle-crosshatch'];
+
+function fillPatterns(unit, seed, r) {
+  // Dots on a jittered grid read as an even tone. Pure random dots form clumps that look like spots.
+  const dots = (id, spacing, size) => {
+    const rand = random(seed + Math.round(spacing * 10));
+    const cells = 12;
+    const step = spacing * unit;
+    const tile = cells * step;
+    const circles = [];
+    for (let i = 0; i < cells; i += 1) {
+      for (let j = 0; j < cells; j += 1) {
+        const x = (i + 0.5 + (rand() - 0.5) * 0.7) * step;
+        const y = (j + 0.5 + (rand() - 0.5) * 0.7) * step;
+        circles.push(`<circle cx="${r(x)}" cy="${r(y)}" r="${r(size * unit * (0.75 + rand() * 0.5))}"/>`);
+      }
+    }
+    return `<pattern id="${id}" patternUnits="userSpaceOnUse" width="${r(tile)}" height="${r(tile)}"><g fill="#000">${circles.join('')}</g></pattern>`;
+  };
+  const lines = (id, angles) => {
+    const gap = 8 * unit;
+    const strokes = angles.map((a) => `<path d="M0 ${r(gap / 2)} H${r(gap)}" transform="rotate(${a} ${r(gap / 2)} ${r(gap / 2)})"/>`).join('');
+    return `<pattern id="${id}" patternUnits="userSpaceOnUse" width="${r(gap)}" height="${r(gap)}" patternTransform="rotate(45)">`
+      + `<g stroke="#000" stroke-width="${r(1.4 * unit)}" stroke-linecap="square">${strokes}</g></pattern>`;
+  };
+  return dots('doodle-stipple', 3.4, 0.95) + dots('doodle-stipple-dense', 2.6, 1.15) + lines('doodle-hatch', [0]) + lines('doodle-crosshatch', [0, 90]);
+}
+
+// Marks of a used sketchbook page, placed at random near the edges: tape on 2 corners and ink specks (light), plus a
+// coffee ring (full). They stay off the middle of the page, so they do not cover the drawing.
+export const MATERIALS = ['light', 'full', 'none'];
+
+function materialMarks(box, unit, seed, level, ink, r) {
+  if (level === 'none') return { defs: '', marks: '' };
+  const rand = random(seed + 500);
+  const marks = [];
+  const inset = 34 * unit;
+  const corners = [
+    [box.x + inset, box.y + inset, -38], [box.x + box.w - inset, box.y + inset, 38],
+    [box.x + inset, box.y + box.h - inset, 38], [box.x + box.w - inset, box.y + box.h - inset, -38],
+  ];
+  const picks = rand() < 0.5 ? [0, 1] : [0, 3];
+  for (const i of picks) {
+    const [cx, cy, angle] = corners[i];
+    const w = 150 * unit;
+    const h = 42 * unit;
+    const teeth = (x) => Array.from({ length: 7 }, (_, k) => `${r(x + (k % 2 ? 4 : -4) * unit * rand())} ${r(-h / 2 + (k * h) / 6)}`).join(' L');
+    const shape = `M${teeth(-w / 2)} L${teeth(w / 2).split(' L').reverse().join(' L')} Z`;
+    marks.push(`<path d="${shape}" transform="translate(${r(cx)} ${r(cy)}) rotate(${angle + r((rand() - 0.5) * 10)})" fill="#fdfcf7" fill-opacity="0.8" stroke="#000" stroke-opacity="0.16" stroke-width="${r(unit)}"/>`);
+  }
+  const edgePoint = () => {
+    const side = Math.floor(rand() * 4);
+    const t = 0.1 + rand() * 0.8;
+    const m = (0.03 + rand() * 0.06);
+    if (side === 0) return [box.x + t * box.w, box.y + m * box.h];
+    if (side === 1) return [box.x + t * box.w, box.y + (1 - m) * box.h];
+    if (side === 2) return [box.x + m * box.w, box.y + t * box.h];
+    return [box.x + (1 - m) * box.w, box.y + t * box.h];
+  };
+  for (let i = 0; i < 2; i += 1) {
+    const [x, y] = edgePoint();
+    const blob = [`<circle cx="${r(x)}" cy="${r(y)}" r="${r((2.5 + rand() * 3) * unit)}"/>`];
+    for (let k = 0; k < 4; k += 1) {
+      const a = rand() * Math.PI * 2;
+      const d = (6 + rand() * 14) * unit;
+      blob.push(`<circle cx="${r(x + Math.cos(a) * d)}" cy="${r(y + Math.sin(a) * d)}" r="${r((0.6 + rand() * 1.4) * unit)}"/>`);
+    }
+    marks.push(`<g fill="${ink}">${blob.join('')}</g>`);
+  }
+  let defs = '';
+  if (level === 'full') {
+    defs = `<filter id="doodle-stain" x="-20%" y="-20%" width="140%" height="140%"><feTurbulence type="fractalNoise" baseFrequency="${r(0.03 / unit)}" numOctaves="2" seed="${seed + 77}"/>`
+      + `<feDisplacementMap in="SourceGraphic" scale="${r(10 * unit)}" xChannelSelector="R" yChannelSelector="G"/></filter>`;
+    const x = box.x + box.w * (rand() < 0.5 ? 0.9 : 0.1);
+    const y = box.y + box.h * (0.82 + rand() * 0.1);
+    const radius = 70 * unit;
+    marks.push(`<g filter="url(#doodle-stain)" fill="none" stroke="#6b4a2b"><circle cx="${r(x)}" cy="${r(y)}" r="${r(radius)}" stroke-opacity="0.16" stroke-width="${r(7 * unit)}"/>`
+      + `<circle cx="${r(x + 4 * unit)}" cy="${r(y - 3 * unit)}" r="${r(radius - 6 * unit)}" stroke-opacity="0.08" stroke-width="${r(3 * unit)}"/></g>`);
+  }
+  return { defs, marks: marks.join('') };
+}
+
 // Returns the final SVG: the root gets the pixel size, a paper sheet, and the ink filter around the drawing.
 // The filter moves each line by a small random offset, so the strokes wobble like a pen on paper. With `retrace`,
 // a second copy of the lines sits under the drawing with other offsets, like a pen that goes over a line twice.
 // The second copy leaves out the text, so labels stay sharp. A tone filter maps black to the ink color and white to
 // the paper color, so white fills match the sheet. The paper textures lie on top of the drawing, so they also cover
 // the fills and the ink.
-export function inkSvg(svg, { preset, seed = 1, retrace = true, paper = 'newsprint' }) {
+// Returns the inner content of the <defs> of the character sheet, or an empty string.
+export function characterDefs(sheet) {
+  const m = sheet.match(/<defs>([\s\S]*?)<\/defs>/i);
+  return m ? m[1].trim() : '';
+}
+
+export function inkSvg(svg, { preset, seed = 1, retrace = true, paper = 'newsprint', material = 'light', character = '' }) {
   const rootTag = svg.match(/<svg\b[^>]*>/i)[0];
   const box = viewBox(rootTag);
   const { width, height } = sizeFor(preset, box);
@@ -108,7 +208,7 @@ export function inkSvg(svg, { preset, seed = 1, retrace = true, paper = 'newspri
     `<feTurbulence type="fractalNoise" baseFrequency="${r(frequency / unit)}" numOctaves="${octaves}" seed="${s}" result="noise"/>`
     + `<feDisplacementMap in="SourceGraphic" in2="noise" scale="${r(scale * unit)}" xChannelSelector="R" yChannelSelector="G"/>`;
   const region = 'x="-5%" y="-5%" width="110%" height="110%"';
-  const filters = [`<filter id="doodle-ink" ${region}>${noise(0.02, 3, 6, seed)}</filter>`];
+  const filters = [`<filter id="doodle-ink" ${region}>${noise(0.02, 3, 6, seed)}</filter>`, fillPatterns(unit, seed, r)];
   // The second pen line is thinner (erode) and sits a little off the first one (offset).
   if (retrace) {
     filters.push(`<filter id="doodle-retrace" ${region}>${noise(0.008, 2, 16, seed + 101)}`
@@ -147,7 +247,11 @@ export function inkSvg(svg, { preset, seed = 1, retrace = true, paper = 'newspri
     ? `<g filter="url(#doodle-retrace)">${body.replace(/<text\b[\s\S]*?<\/text>/gi, '').replace(/\sid\s*=\s*("[^"]*"|'[^']*')/gi, '')}</g>`
     : '';
   const drawing = `${under}<g filter="url(#doodle-ink)">${body}</g>`;
-  return `${root}<defs>${filters.join('')}</defs>${sheet}${toned ? `<g filter="url(#doodle-tone)">${drawing}</g>` : drawing}${overlays.join('')}</svg>\n`;
+  // The character parts go into the defs only when the drawing uses them.
+  if (character && /#char-/.test(body)) filters.push(character);
+  const extra = materialMarks(box, unit, seed, material, p.ink, r);
+  filters.push(extra.defs);
+  return `${root}<defs>${filters.join('')}</defs>${sheet}${toned ? `<g filter="url(#doodle-tone)">${drawing}</g>` : drawing}${overlays.join('')}${extra.marks}</svg>\n`;
 }
 
 // Finds a Chrome, Chromium, or Edge binary. DOODLE_CHROME overrides the search.
@@ -186,9 +290,10 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
   let seed = 1;
   let retrace = true;
   let paper = 'newsprint';
+  let material = 'light';
   const files = [];
   const usage = (reason) => {
-    console.error(`ink.mjs: ${reason}\nusage: ink.mjs --preset <${Object.keys(PRESETS).join('|')}> [--paper <${Object.keys(PAPERS).join('|')}>] [--out <dir>] [--seed <n>] [--single] <drawing.svg>`);
+    console.error(`ink.mjs: ${reason}\nusage: ink.mjs --preset <${Object.keys(PRESETS).join('|')}> [--paper <${Object.keys(PAPERS).join('|')}>] [--out <dir>] [--seed <n>] [--single] [--material <light|full|none>] <drawing.svg>`);
     process.exit(2);
   };
   for (let i = 0; i < args.length; i += 1) {
@@ -197,10 +302,12 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
     else if (args[i] === '--seed') seed = Number(args[++i]);
     else if (args[i] === '--single') retrace = false;
     else if (args[i] === '--paper') paper = args[++i];
+    else if (args[i] === '--material') material = args[++i];
     else files.push(args[i]);
   }
   if (!Object.hasOwn(PRESETS, preset ?? '')) usage(`--preset must be one of ${Object.keys(PRESETS).join(', ')}`);
   if (!Object.hasOwn(PAPERS, paper ?? '')) usage(`--paper must be one of ${Object.keys(PAPERS).join(', ')}`);
+  if (!MATERIALS.includes(material)) usage(`--material must be one of ${MATERIALS.join(', ')}`);
   if (!Number.isInteger(seed) || seed < 0) usage('--seed must be an integer of 0 or more');
   if (files.length !== 1) usage('give exactly one SVG file');
   const input = files[0];
@@ -218,7 +325,9 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
   const name = path.basename(input).replace(/\.svg$/i, '');
   const finalSvg = path.resolve(dir, `${name}.final.svg`);
   const png = path.resolve(dir, `${name}.png`);
-  const inked = inkSvg(svg, { preset, seed, retrace, paper });
+  const sheet = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'assets', 'character.svg');
+  const character = fs.existsSync(sheet) ? characterDefs(fs.readFileSync(sheet, 'utf8')) : '';
+  const inked = inkSvg(svg, { preset, seed, retrace, paper, material, character });
   fs.writeFileSync(finalSvg, inked);
   console.log(finalSvg);
 

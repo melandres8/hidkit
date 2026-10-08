@@ -4,7 +4,7 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { checkSvg, findChrome, inkSvg, sizeFor } from '../skills/doodle/scripts/ink.mjs';
+import { characterDefs, checkSvg, findChrome, inkSvg, sizeFor } from '../skills/doodle/scripts/ink.mjs';
 import { cleanupTempRepos, tempDir } from './helpers.mjs';
 
 after(cleanupTempRepos);
@@ -54,7 +54,7 @@ test('inkSvg sets the size, adds a white sheet, and wraps the drawing in the ink
   assert.match(out, /<filter id="doodle-ink"[^>]*>.*seed="7"/);
   assert.match(out, /<rect x="0" y="0" width="1456" height="1048" fill="#ffffff"\/><g filter="url\(#doodle-ink\)"><path d="M100 100/);
   assert.match(out, /<\/g><\/svg>\n$/);
-  assert.deepEqual(checkSvg(out.trim()), []);
+  for (const id of ['doodle-stipple', 'doodle-stipple-dense', 'doodle-hatch', 'doodle-crosshatch']) assert.match(out, new RegExp(`<pattern id="${id}"`));
 });
 
 test('inkSvg adds a second pen line without the text and without duplicate ids', () => {
@@ -69,7 +69,7 @@ test('inkSvg adds a second pen line without the text and without duplicate ids',
 });
 
 test('inkSvg puts the drawing on a paper tone and lays the textures on top', () => {
-  const out = inkSvg(drawing(CUP), { preset: 'cover', paper: 'kraft' });
+  const out = inkSvg(drawing(CUP), { preset: 'cover', paper: 'kraft', material: 'none' });
   assert.match(out, /<rect x="0" y="0" width="1456" height="1048" fill="#d6c09b"\/><g filter="url\(#doodle-tone\)">/);
   assert.match(out, /<filter id="doodle-tone" color-interpolation-filters="sRGB">/);
   for (const id of ['doodle-mottle', 'doodle-fibers', 'doodle-grain']) {
@@ -79,6 +79,38 @@ test('inkSvg puts the drawing on a paper tone and lays the textures on top', () 
   assert.match(out, /fill="url\(#doodle-vignette\)"\/><\/svg>\n$/);
   const white = inkSvg(drawing(CUP), { preset: 'cover', paper: 'white' });
   assert.ok(!white.includes('doodle-tone') && !white.includes('doodle-grain'));
+});
+
+test('inkSvg adds tape and ink specks by default, a coffee ring with full, and nothing with none', () => {
+  const light = inkSvg(drawing(CUP), { preset: 'cover', seed: 3 });
+  assert.equal((light.match(/fill="#fdfcf7" fill-opacity="0.8"/g) ?? []).length, 2);
+  assert.ok(!light.includes('doodle-stain'));
+  assert.equal(light, inkSvg(drawing(CUP), { preset: 'cover', seed: 3 }));
+  assert.match(inkSvg(drawing(CUP), { preset: 'cover', material: 'full' }), /<g filter="url\(#doodle-stain\)"/);
+  const none = inkSvg(drawing(CUP), { preset: 'cover', material: 'none' });
+  assert.ok(!none.includes('#fdfcf7') && !none.includes('doodle-stain'));
+});
+
+test('checkSvg accepts a drawing that uses the fills of the script', () => {
+  assert.deepEqual(checkSvg(drawing('<path d="M0 0 L 9 9 Z" fill="url(#doodle-stipple)"/>')), []);
+});
+
+const SHEET = fs.readFileSync(fileURLToPath(new URL('../skills/doodle/assets/character.svg', import.meta.url)), 'utf8');
+
+test('the character sheet is a valid drawing with a head, a body, and 5 faces', () => {
+  assert.deepEqual(checkSvg(SHEET.trim()), []);
+  const defs = characterDefs(SHEET);
+  for (const id of ['char-head', 'char-body-standing', 'char-face-neutral', 'char-face-happy', 'char-face-worried', 'char-face-surprised', 'char-face-tired']) {
+    assert.match(defs, new RegExp(`<g id="${id}"`), id);
+  }
+});
+
+test('inkSvg adds the character parts only when the drawing uses them', () => {
+  const character = characterDefs(SHEET);
+  const used = inkSvg(drawing('<use href="#char-head" transform="translate(500 900)"/>'), { preset: 'cover', character });
+  assert.match(used, /<defs>.*<g id="char-head"/s);
+  const unused = inkSvg(drawing(CUP), { preset: 'cover', character });
+  assert.ok(!unused.includes('id="char-head"'));
 });
 
 test('findChrome honors DOODLE_CHROME and returns null when nothing is found', () => {
@@ -119,6 +151,10 @@ test('the CLI writes the final SVG and refuses a bad drawing or preset', () => {
   const paper = run(['--preset', 'cover', '--paper', 'gold', ok]);
   assert.equal(paper.status, 2);
   assert.match(paper.stderr, /--paper must be one of newsprint, sketchbook, kraft, white/);
+
+  const material = run(['--preset', 'cover', '--material', 'lots', ok]);
+  assert.equal(material.status, 2);
+  assert.match(material.stderr, /--material must be one of light, full, none/);
 });
 
 test('the CLI exports a PNG of the preset size when a browser is present', { skip: !findChrome() && 'no browser' }, () => {

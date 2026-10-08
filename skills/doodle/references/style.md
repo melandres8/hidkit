@@ -15,6 +15,14 @@ The look is a quick pen sketch in black ink on paper, by someone with a good eye
 | How technical debt piles up | A pile of money | A tower of boxes, the lower ones squashed, a small figure adds one more on top |
 | Writing every day | A pen and paper | A pencil worn down to a stub, next to a tall stack of pages |
 
+## Voice
+
+The humor is self-deprecating and tender. The character doubts, makes small mistakes, and tries again.
+
+- Find the human moment in the idea: the doubt, the small failure, or the quiet win.
+- Make the reader think "that is me". Recognition is the joke.
+- Keep the drawing kind. Do not mock the reader, the character, or other people.
+
 ## Personality
 
 A clean drawing of the right object is not enough. Each drawing needs a reason to look twice.
@@ -24,6 +32,7 @@ A clean drawing of the right object is not enough. Each drawing needs a reason t
 - Exaggerate one property: size, angle, count, or emotion.
 - Show a moment: the second before something happens, or the result right after it.
 - Give a figure that carries the emotion a head of at least 8 percent of the shorter side. A small face cannot show feelings.
+- Use the recurring character for each person. Read [the character guide](character.md).
 - Put one bold black shape in the drawing, such as hair, a screen, or a shadow. It gives the eye a place to land.
 
 | Generic | With personality |
@@ -59,6 +68,8 @@ A clean drawing of the right object is not enough. Each drawing needs a reason t
 - Cross the hatching for dark areas. Let hatch strokes end unevenly.
 - For a dark area with energy, use a scribble fill: one zigzag line that goes back and forth.
 - Use solid black only for small accents, such as pupils, a hat band, or a cast shadow. Use at most one large black shape.
+- Use the fills of the script for tone: `url(#doodle-stipple)`, `url(#doodle-stipple-dense)`, `url(#doodle-hatch)`, and `url(#doodle-crosshatch)`.
+- A fill has gaps. Put a shape with `fill="#fff"` under it when lines behind it MUST stay hidden.
 - Use `fill="#fff"` to hide the lines behind an object.
 - Do not use gray, color, gradients, or opacity. The script refuses them.
 

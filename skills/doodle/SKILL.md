@@ -28,7 +28,8 @@ The sizes come from third-party guides, not from the Substack help pages. Not ve
 
 ## Steps
 
-1. Read [the style guide](references/style.md). It sets the idea, the composition, the line, and the shade.
+1. Read [the style guide](references/style.md). It sets the voice, the idea, the composition, the line, and the shade.
+   When the drawing shows a person, also read [the character guide](references/character.md).
 2. Pick the concept.
 3. Write the SVG to `<dir>/<slug>.svg`. Set the viewBox to the size of the preset, such as `0 0 1456 1048`.
 4. Run the ink script with `run-shell`:
@@ -50,6 +51,10 @@ The sizes come from third-party guides, not from the Substack help pages. Not ve
   - `sketchbook`: warm off-white with fine grain.
   - `kraft`: brown wrapping paper, the most rustic.
   - `white`: plain white, with no texture.
+- The script adds marks of a used sketchbook page near the edges. Pick them with `--material`:
+  - `light`: tape on 2 corners and 2 ink specks. This is the default.
+  - `full`: `light` plus a coffee ring.
+  - `none`: no marks.
 - When the script finds no browser, it writes only the SVG. Tell the user that the PNG needs Chrome, Chromium, or Edge.
 
 ## Reply
