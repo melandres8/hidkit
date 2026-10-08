@@ -1,6 +1,6 @@
 # Character
 
-The doodles have one recurring character: a man with dark skin, a short afro, a mustache and goatee, and round glasses. The character makes each drawing recognizable as part of the same newsletter.
+The doodles have one recurring character: a dark-skinned man with a short afro, a mustache, a goatee, and round glasses. The character makes each drawing recognizable as part of the same newsletter.
 
 ## When
 
