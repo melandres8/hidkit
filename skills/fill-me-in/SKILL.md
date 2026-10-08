@@ -50,7 +50,7 @@ A move is one action that changed the state of the work. Tell the moves as a sho
 
 ## Page
 
-The page holds the briefing: the diagram, the parts, the moves, and the open items. Build it with the render script. Pipe the brief to it with a quoted heredoc, so that the shell does not expand `$` or backticks:
+The page holds the briefing: the diagram, the parts, the moves, and the open items. Build it with the render script. Pipe the page data to it as JSON. Use a quoted heredoc, so that the shell does not expand `$` or backticks:
 
 ```text
 node <skill-dir>/scripts/render.mjs --out <dir> [--base <commit>] <file>... <<'EOF'
@@ -77,7 +77,7 @@ EOF
 - Write the text in the language of the user. Keep code names as they are.
 - The script writes the page, prints its path, and opens it in the browser.
 
-If the script exits with 2, it lists each problem in the brief. Fix those fields and run it again, one time. If it fails again, reply with the full briefing in chat. Do the same when Node or git is not available. Draw the diagram as a tree with `├─`, `└─`, and `→` in a fenced `text` block. Put the state in brackets before each node. Tell the user why the page failed.
+If the script exits with 2, it lists each problem in the page data. Fix those fields and run it again, one time. If it fails again, reply with the full briefing in chat. Do the same when Node or git is not available. Draw the diagram as a tree with `├─`, `└─`, and `→` in a fenced `text` block. Put the state in brackets before each node. Tell the user why the page failed.
 
 ## Reply
 

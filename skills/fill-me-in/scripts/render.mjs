@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Builds the fill-me-in briefing as one self-contained HTML page and opens it in the browser.
-// Usage: node render.mjs [--base <rev>] [--out <dir>] [--no-open] <file>... < brief.json
-// Reads the brief (JSON) from stdin, maps the files with map.mjs, and prints the path of the page.
+// Usage: node render.mjs [--base <rev>] [--out <dir>] [--no-open] <file>... < page.json
+// Reads the page data (JSON) from stdin, maps the files with map.mjs, and prints the path of the page.
 import { execFileSync, spawn } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -69,7 +69,7 @@ const isText = (v) => typeof v === 'string' && v.trim() !== '';
 const isList = (v) => Array.isArray(v);
 const quote = (v) => JSON.stringify(v);
 
-// Returns each problem of the brief against the map. The list is empty when the brief is valid.
+// Returns each problem of the page data against the map. The list is empty when the brief is valid.
 export function validateBrief(brief, map) {
   const problems = [];
   const add = (field, text) => problems.push(`${field}: ${text}`);
@@ -192,7 +192,7 @@ function stateOf(counts) {
   return 'modified';
 }
 
-// Builds the nodes and the edges of the diagram from a valid brief and its map.
+// Builds the nodes and the edges of the diagram from valid page data and its map.
 export function buildModel(brief, map) {
   const owner = new Map();
   const mapPart = new Map(map.parts.map((p) => [p.id, p]));
@@ -295,8 +295,15 @@ export function layout(model) {
     col.forEach((id, r) => pos.set(id, { x: BOX.pad + c * (BOX.w + BOX.gapX), y: top + r * (BOX.h + BOX.gapY) }));
   });
   const col = new Map();
-  cols.forEach((ids, c) => ids.forEach((id) => col.set(id, c)));
-  return { pos, col, width: BOX.pad * 2 + cols.length * BOX.w + (cols.length - 1) * BOX.gapX, height };
+  const sides = new Map();
+  cols.forEach((ids, c) =>
+    ids.forEach((id, r) => {
+      col.set(id, c);
+      const middle = r > 0 && r < ids.length - 1;
+      sides.set(id, { top: r === 0 || middle, bottom: r === ids.length - 1 || middle });
+    }),
+  );
+  return { pos, col, sides, width: BOX.pad * 2 + cols.length * BOX.w + (cols.length - 1) * BOX.gapX, height };
 }
 
 const escape = (text) => String(text).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -316,10 +323,11 @@ function wrap(label) {
 const round1 = (n) => Math.round(n * 10) / 10;
 
 // An edge to the next column is a curve between the sides of the boxes. Each other edge would cross boxes, so it is
-// an arc above or below the boxes. The arcs alternate between above and below.
+// an arc that leaves and enters each box by its top or its bottom. Only the first box of a column has a free top, and
+// only the last box has a free bottom.
 const arcDepth = (span) => 28 + 12 * Math.min(Math.abs(span), 5);
 
-function route(a, b, span, arc) {
+function route(a, b, span, startAbove, endAbove) {
   if (span === 1) {
     const x1 = a.x + BOX.w;
     const y1 = a.y + BOX.h / 2;
@@ -328,18 +336,29 @@ function route(a, b, span, arc) {
     const dx = Math.max(40, (x2 - x1) / 2);
     return [[x1, y1], [x1 + dx, y1], [x2 - dx, y2], [x2, y2]];
   }
-  const above = arc % 2 === 0;
-  const depth = arcDepth(span);
-  const x1 = a.x + BOX.w / 2 + (above ? 12 : -12);
-  const x2 = b.x + BOX.w / 2 + (above ? -12 : 12);
-  const y1 = above ? a.y : a.y + BOX.h;
-  const y2 = above ? b.y : b.y + BOX.h;
-  const cy = above ? Math.min(y1, y2) - depth * 1.33 : Math.max(y1, y2) + depth * 1.33;
-  return [[x1, y1], [x1, cy], [x2, cy], [x2, y2]];
+  const lift = arcDepth(span) * 1.33;
+  const x1 = a.x + BOX.w / 2 + (startAbove ? 12 : -12);
+  const x2 = b.x + BOX.w / 2 + (endAbove ? -12 : 12);
+  const y1 = startAbove ? a.y : a.y + BOX.h;
+  const y2 = endAbove ? b.y : b.y + BOX.h;
+  if (startAbove === endAbove) {
+    const cy = startAbove ? Math.min(y1, y2) - lift : Math.max(y1, y2) + lift;
+    return [[x1, y1], [x1, cy], [x2, cy], [x2, y2]];
+  }
+  return [[x1, y1], [x1, startAbove ? y1 - lift : y1 + lift], [x2, endAbove ? y2 - lift : y2 + lift], [x2, y2]];
+}
+
+// Picks the sides of an arc. When both sides are free at both ends, the arcs alternate between above and below.
+function arcSides(from, to, turn) {
+  const above = from.top && to.top;
+  const below = from.bottom && to.bottom;
+  if (above && below) return turn % 2 === 0 ? [true, true] : [false, false];
+  if (above || below) return [above, above];
+  return [from.top, to.top];
 }
 
 function svg(model, t) {
-  const { pos: grid, col, width, height: gridHeight } = layout(model);
+  const { pos: grid, col, sides, width, height: gridHeight } = layout(model);
   const label = new Map(model.nodes.map((n) => [n.id, n.label]));
   const spans = model.edges.map((e) => col.get(e.to) - col.get(e.from)).filter((span) => span !== 1);
   const space = spans.length ? Math.max(...spans.map(arcDepth)) + 20 : 0;
@@ -348,7 +367,8 @@ function svg(model, t) {
   let arc = 0;
   const edges = model.edges.map((e) => {
     const span = col.get(e.to) - col.get(e.from);
-    const [[x1, y1], c1, c2, [x2, y2]] = route(pos.get(e.from), pos.get(e.to), span, span === 1 ? 0 : arc++);
+    const [startAbove, endAbove] = span === 1 ? [false, false] : arcSides(sides.get(e.from), sides.get(e.to), arc++);
+    const [[x1, y1], c1, c2, [x2, y2]] = route(pos.get(e.from), pos.get(e.to), span, startAbove, endAbove);
     const d = `M${round1(x1)} ${round1(y1)} C${round1(c1[0])} ${round1(c1[1])}, ${round1(c2[0])} ${round1(c2[1])}, ${round1(x2)} ${round1(y2)}`;
     const title = `${label.get(e.from)} → ${label.get(e.to)}${e.refs ? ` (${t.refs(e.refs)})` : ''}`;
     let text = '';
@@ -569,7 +589,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
   let openIt = true;
   const files = [];
   const usage = (reason) => {
-    console.error(`render.mjs: ${reason}\nusage: render.mjs [--base <rev>] [--out <dir>] [--no-open] <file>... < brief.json`);
+    console.error(`render.mjs: ${reason}\nusage: render.mjs [--base <rev>] [--out <dir>] [--no-open] <file>... < page.json`);
     process.exit(2);
   };
   for (let i = 0; i < args.length; i += 1) {
@@ -587,18 +607,18 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
   }
 
   const input = process.stdin.isTTY ? '' : fs.readFileSync(0, 'utf8');
-  if (input.trim() === '') usage('no brief on stdin');
+  if (input.trim() === '') usage('no page data on stdin');
   let brief;
   try {
     brief = JSON.parse(input);
   } catch (err) {
-    usage(`the brief is not JSON: ${err.message}`);
+    usage(`the page data is not JSON: ${err.message}`);
   }
 
   const map = mapChange({ root, files, base: commit });
   const problems = validateBrief(brief, map);
   if (problems.length > 0) {
-    console.error(`render.mjs: ${problems.length} ${problems.length === 1 ? 'problem' : 'problems'} in the brief\n${problems.map((p) => `  ${p}`).join('\n')}`);
+    console.error(`render.mjs: ${problems.length} ${problems.length === 1 ? 'problem' : 'problems'} in the page data\n${problems.map((p) => `  ${p}`).join('\n')}`);
     process.exit(2);
   }
 

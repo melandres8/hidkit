@@ -189,6 +189,28 @@ test('renderHtml shows the note for hidden groups and leaves out empty open grou
   assert.ok(!html.includes('>Pending<'));
 });
 
+test('an arc leaves a lower box by its bottom, so it does not cross the box above', () => {
+  const map = {
+    touched: 2,
+    parts: [{ id: 'part:a', dir: 'a', files: 1, states: { new: 1 } }, { id: 'part:b', dir: 'b', files: 1, states: { modified: 1 } }],
+    existing: [{ id: 'existing:e1', dir: 'e1', files: 1 }, { id: 'existing:e2', dir: 'e2', files: 1 }],
+    edges: [
+      { from: 'existing:e1', to: 'part:a', refs: 1, samples: [] },
+      { from: 'part:a', to: 'part:b', refs: 1, samples: [] },
+      { from: 'existing:e2', to: 'part:b', refs: 1, samples: [] },
+    ],
+  };
+  const brief = { ...sampleBrief(), parts: [
+    { id: 'a', label: 'A', purpose: 'x', reason: 'x', from: ['part:a'] },
+    { id: 'b', label: 'B', purpose: 'x', reason: 'x', from: ['part:b'] },
+  ] };
+  const html = renderHtml(brief, map);
+  const box = html.match(/<title>e2 \([^)]*\)<\/title><rect x="[\d.]+" y="([\d.]+)" width="[\d.]+" height="([\d.]+)"/);
+  const arc = html.match(/<title>e2 → B[^<]*<\/title><path d="M[\d.]+ ([\d.]+) /);
+  assert.ok(box && arc);
+  assert.equal(Number(arc[1]), Number(box[1]) + Number(box[2]));
+});
+
 // A small repo where checkout uses price.
 function shop() {
   const root = tempRepo();
@@ -230,11 +252,11 @@ test('the CLI exits with 2 for a bad brief, an empty stdin, and a bad --base', (
   const out = tempDir('render-out-');
   const bad = run(root, ['--out', out, 'src/price.js'], JSON.stringify({ ...cliBrief, parts: [] }));
   assert.equal(bad.status, 2);
-  assert.match(bad.stderr, /problems? in the brief/);
+  assert.match(bad.stderr, /problems? in the page data/);
 
   const empty = run(root, ['--out', out, 'src/price.js'], '');
   assert.equal(empty.status, 2);
-  assert.match(empty.stderr, /no brief on stdin/);
+  assert.match(empty.stderr, /no page data on stdin/);
 
   const notJson = run(root, ['--out', out, 'src/price.js'], '{oops');
   assert.equal(notJson.status, 2);
