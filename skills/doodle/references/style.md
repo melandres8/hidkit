@@ -1,6 +1,6 @@
 # Doodle style
 
-The look is a quick pen sketch in black ink on white paper, by someone with a good eye. It looks loose, but each line has a job.
+The look is a quick pen sketch in black ink on paper, by someone with a good eye. Draw in black and white. The script adds the paper tone and texture. It looks loose, but each line has a job.
 
 ## Idea
 

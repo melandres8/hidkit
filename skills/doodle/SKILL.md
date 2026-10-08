@@ -4,7 +4,7 @@ description: Use this skill when the user wants an illustration, drawing, or ima
 ---
 # Doodle
 
-Draw an illustration for a Substack post: a black and white doodle with good taste. Deliver an SVG and a PNG.
+Draw an illustration for a Substack post: a black ink doodle on textured paper, with good taste. Deliver an SVG and a PNG.
 
 ## Input
 
@@ -45,6 +45,11 @@ The sizes come from third-party guides, not from the Substack help pages. Not ve
 - `<dir>` is the directory that the user names. Otherwise use the scratchpad directory of the session. Otherwise use `doodles/` in the working directory.
 - The script checks the colors, adds the ink filter and a white sheet, and writes `<slug>.final.svg` and `<slug>.png`.
 - The script adds a second, thinner pen line under the drawing. Add `--single` when the user wants cleaner lines.
+- The script puts the drawing on textured paper. Pick it with `--paper`:
+  - `sketchbook`: warm off-white with fine grain. This is the default.
+  - `kraft`: brown wrapping paper, the most rustic.
+  - `newsprint`: gray newspaper.
+  - `white`: plain white, with no texture.
 - When the script finds no browser, it writes only the SVG. Tell the user that the PNG needs Chrome, Chromium, or Edge.
 
 ## Reply
