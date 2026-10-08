@@ -1,10 +1,10 @@
 ---
 name: fill-me-in
-description: Use this skill when the user wants a briefing on the work of this session. It explains the general idea of the change, how it connects to the existing code, and the key moves, with a diagram. Use it for "fill me in", "catch me up", "what did you do", "walk me through the changes", "ponme al tanto", "qué se hizo", "qué hiciste", "cómo se conecta con lo que ya existe", or "explícame los movimientos", even when the user does not name the skill.
+description: Use this skill when the user wants a briefing on the work of this session. It explains the general idea of the change, how it connects to the existing code, and the key moves, in an HTML page with a diagram. Use it for "fill me in", "catch me up", "what did you do", "walk me through the changes", "ponme al tanto", "qué se hizo", "qué hiciste", "cómo se conecta con lo que ya existe", or "explícame los movimientos", even when the user does not name the skill.
 ---
 # Fill me in
 
-Brief the user on the work of this session. The goal is understanding, not an inventory. Explain the idea and the reason of each change, and show how it fits the existing code.
+Brief the user on the work of this session in one HTML page. The goal is understanding, not an inventory. Explain the idea and the reason of each change, and show how it fits the existing code.
 
 A reader holds about 4 items at a time. Use 4 parts, 4 phases, and 6 diagram nodes at most.
 
@@ -48,33 +48,44 @@ A move is one action that changed the state of the work. Tell the moves as a sho
 - Leave out reads, searches, and routine edits.
 - Put each decision in the phase where it happened.
 
-## Diagram
+## Page
 
-The diagram shows how the change connects. Do not repeat the connections as a list of sentences.
+The page holds the briefing: the diagram, the parts, the moves, and the open items. Build it with the render script. Pipe the page data to it as JSON. Use a quoted heredoc, so that the shell does not expand `$` or backticks:
 
-- Draw the parts and the existing code from the map as nodes.
-- Mark each node as new, modified, or existing. Use one color for each state, and add a legend.
-- Label an edge only when its source and target do not make the relation plain.
-- Write the node labels in the language of the user. Keep code names as they are.
+```text
+node <skill-dir>/scripts/render.mjs --out <dir> [--base <commit>] <file>... <<'EOF'
+{
+  "lang": "es",
+  "idea": "One sentence.",
+  "summary": ["Line 1", "Line 2"],
+  "parts": [
+    { "id": "skill", "label": "Skill", "purpose": "...", "reason": "...",
+      "from": ["part:skills/fill-me-in", "part:skills/fill-me-in/scripts"] }
+  ],
+  "existing": [{ "id": "docs", "label": "Docs", "from": ["existing:."] }],
+  "edges": [{ "from": "skill", "to": "docs", "label": "updates" }],
+  "phases": [{ "name": "Build", "moves": ["..."] }],
+  "open": { "pending": ["..."], "unverified": ["..."], "next": "..." }
+}
+EOF
+```
 
-The harness is the one that your system context names. Read the `show-diagram` row of its harness map, at `../cheffy/references/harness/<harness>.md`. Then pick the form:
+- Give the same files and `--base` as to the map script.
+- `<dir>` is the scratchpad directory of the session. Omit `--out` when the harness gives no scratchpad.
+- Put each map part in the `from` list of exactly one part.
+- `existing`, `edges`, and `open` are optional. Use `existing` to merge and name the groups of existing code. Use `edges` for code that a part uses, and to label an edge whose relation is not plain.
+- Write the text in the language of the user. Keep code names as they are.
+- The script writes the page, prints its path, and opens it in the browser.
 
-- **Visual tool.** Use it whenever the harness has one. Draw only the overview. Make each part node request its detail on click, if the tool allows it.
-- **Text diagram.** Use it when the harness has no visual tool. Draw a tree with `├─`, `└─`, and `→` in a fenced `text` block. Put the state in brackets before each node.
-- **Mermaid.** Use a fenced `mermaid` block only in a file or a PR that GitHub renders.
-
-When the user asks for the detail of a part, draw one diagram of the files of that part.
+If the script exits with 2, it lists each problem in the page data. Fix those fields and run it again, one time. If it fails again, reply with the full briefing in chat. Do the same when Node or git is not available. Draw the diagram as a tree with `├─`, `└─`, and `→` in a fenced `text` block. Put the state in brackets before each node. Tell the user why the page failed.
 
 ## Reply
 
-Follow [plating](../plating/SKILL.md) for the English and Spanish rules. Reply in the language of the user. Use these sections in this order:
+Follow [plating](../plating/SKILL.md) for the English and Spanish rules. Reply in the language of the user. Write only these lines:
 
-1. **Idea.** Write one sentence that states the idea of the change.
-2. **Summary.** Write 3 lines or fewer. State whether the work is done, and what the user needs to do.
-3. **Diagram.** Show the diagram. Under it, explain only the connections that it cannot show, in 3 sentences or fewer.
-4. **Parts.** For each part, give its purpose and the reason for the change, in 2 sentences or fewer.
-5. **Moves.** Show the phases.
-6. **Open items.** List the work that is not done, the claims that nothing verified, and the next step.
+1. **Idea.** One sentence that states the idea of the change.
+2. **Summary.** 3 lines or fewer. State whether the work is done, and what the user needs to do.
+3. **Page.** The path of the page.
 
-- Mark each claim that the session does not show as not verified.
+- Mark each claim that the session does not show as not verified, on the page and in chat.
 - Do not repeat file contents or long command output.
