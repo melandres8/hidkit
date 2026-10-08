@@ -65,6 +65,7 @@ Security has the highest priority in Hidkit.
 | `skills/cheffy/scripts/` | `trace.mjs` (the ledger and the checks), `lint.mjs`, and `doctor.mjs`. |
 | `skills/plating/` | The writing standard for every reply and prose file. |
 | `skills/fill-me-in/` | A briefing on the work of the session as an HTML page, with a diagram of the change and its connections. |
+| `skills/doodle/` | Black and white doodles for Substack posts, as an SVG and a PNG. |
 | `agents/` | The roles: investigator, implementer, critic, verifier, and judge. |
 | `GLOSSARY.md` | The defined terms. |
 | `test/` | Unit tests. |
