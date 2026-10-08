@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Checks a doodle SVG, adds the ink filter and a white sheet, and exports a PNG with headless Chrome.
-// Usage: node ink.mjs --preset <cover|wide|inline|spot> [--paper <sketchbook|kraft|newsprint|white>] [--out <dir>] [--seed <n>] [--single] <drawing.svg>
+// Usage: node ink.mjs --preset <cover|wide|inline|spot> [--paper <newsprint|sketchbook|kraft|white>] [--out <dir>] [--seed <n>] [--single] <drawing.svg>
 // Prints the path of the final SVG and of the PNG, one per line.
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -80,9 +80,9 @@ export function sizeFor(preset, box) {
 // Paper tones and textures. `paper` is the sheet color, `ink` the line color. The other values set the strength of
 // each texture from 0 to 1: grain (fine specks), mottle (uneven tone), fibers (short streaks), and vignette (darker edges).
 export const PAPERS = {
+  newsprint: { paper: '#e7e4dc', ink: '#1a1a1a', grain: 1, mottle: 0.5, fibers: 0.2, vignette: 0.4 },
   sketchbook: { paper: '#f4eee2', ink: '#1c1a17', grain: 0.6, mottle: 0.5, fibers: 0.2, vignette: 0.5 },
   kraft: { paper: '#d6c09b', ink: '#1f1810', grain: 0.8, mottle: 0.9, fibers: 0.6, vignette: 0.8 },
-  newsprint: { paper: '#e7e4dc', ink: '#1a1a1a', grain: 1, mottle: 0.5, fibers: 0.2, vignette: 0.4 },
   white: { paper: '#ffffff', ink: '#000000', grain: 0, mottle: 0, fibers: 0, vignette: 0 },
 };
 
@@ -94,7 +94,7 @@ const rgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 25
 // The second copy leaves out the text, so labels stay sharp. A tone filter maps black to the ink color and white to
 // the paper color, so white fills match the sheet. The paper textures lie on top of the drawing, so they also cover
 // the fills and the ink.
-export function inkSvg(svg, { preset, seed = 1, retrace = true, paper = 'sketchbook' }) {
+export function inkSvg(svg, { preset, seed = 1, retrace = true, paper = 'newsprint' }) {
   const rootTag = svg.match(/<svg\b[^>]*>/i)[0];
   const box = viewBox(rootTag);
   const { width, height } = sizeFor(preset, box);
@@ -185,7 +185,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
   let out;
   let seed = 1;
   let retrace = true;
-  let paper = 'sketchbook';
+  let paper = 'newsprint';
   const files = [];
   const usage = (reason) => {
     console.error(`ink.mjs: ${reason}\nusage: ink.mjs --preset <${Object.keys(PRESETS).join('|')}> [--paper <${Object.keys(PAPERS).join('|')}>] [--out <dir>] [--seed <n>] [--single] <drawing.svg>`);

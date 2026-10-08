@@ -118,7 +118,7 @@ test('the CLI writes the final SVG and refuses a bad drawing or preset', () => {
 
   const paper = run(['--preset', 'cover', '--paper', 'gold', ok]);
   assert.equal(paper.status, 2);
-  assert.match(paper.stderr, /--paper must be one of sketchbook, kraft, newsprint, white/);
+  assert.match(paper.stderr, /--paper must be one of newsprint, sketchbook, kraft, white/);
 });
 
 test('the CLI exports a PNG of the preset size when a browser is present', { skip: !findChrome() && 'no browser' }, () => {
