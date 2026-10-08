@@ -1,6 +1,6 @@
 # Character
 
-The doodles have one recurring character: a person with dark skin, an afro, and round glasses. The character makes each drawing recognizable as part of the same newsletter.
+The doodles have one recurring character: a man with dark skin, a short afro, a short beard, and round glasses. The character makes each drawing recognizable as part of the same newsletter.
 
 ## When
 
@@ -13,7 +13,7 @@ The ink script adds these parts to the page when the drawing uses them. Do not c
 
 | Id | Content |
 |---|---|
-| `char-head` | Afro, ears, stippled face, glasses, and nose |
+| `char-head` | Afro, ears, stippled face, beard, glasses, and nose |
 | `char-face-neutral` | Calm eyes, brows, and mouth |
 | `char-face-happy` | Closed happy eyes and an open smile |
 | `char-face-worried` | Raised inner brows, a wavy mouth, and a drop of sweat |
@@ -46,5 +46,5 @@ Stack the body, the head, and one face with the same transform:
 ## Respect
 
 - Keep the facial features natural and in proportion. Do not exaggerate the lips, the nose, or other features.
-- Keep the afro from `char-head`. Do not change the hair to a stereotype.
+- Keep the afro and the beard from `char-head`. Do not change the hair to a stereotype.
 - Laugh with the character, never at the character. The humor comes from the situation and the feelings, not from the looks.
