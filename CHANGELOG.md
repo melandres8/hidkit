@@ -14,6 +14,10 @@ While the version is 0.x, the behavior of Cheffy and the ledger format can chang
 - `AGENTS.md` (and `CLAUDE.md`, which imports it) tells each agent that eval files go in the private eval repository. `npm run lint` fails when this repository holds an `eval/` or `evals/` directory, an `evals.json` file, or a `*-workspace/` directory.
 - Sharpener, a skill that sharpens another skill after the user iterated with it in a session. It reads the corrections, the retries, and the approvals of the user, and sorts each finding into a skill defect, a task preference, or a model slip. Only a skill defect becomes a patch. Sharpener shows the patch with evidence and edits the skill only after the user approves it. It turns each lesson into a regression case in the skill-creator schema, in the evals file that the user approves (by default `evals/evals.json` of the skill), and checks the file with a script, `cases.mjs`. A run with models happens only when the user asks for it.
 
+### Fixed
+
+- Doodle checks every element at the edges of the sheet, not only the labels. The style guide keeps each element away from the edges, and the taste check asks about any cut element. A sharpener eval found the gap.
+
 ### Security
 
 - The scanned repository can no longer hide a finding from the security baseline with its own allowlist.
