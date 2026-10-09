@@ -47,6 +47,7 @@ A clean drawing of the right object is not enough. Each drawing needs a reason t
 - Use 3 to 7 elements in total. Remove each element that does not help the idea.
 - Anchor objects with a short ground line or a scribbled shadow. Do not draw full backgrounds or frames.
 - Make the main subject fill about half of the shorter side of the sheet.
+- Keep every element at least 4 percent of the shorter side away from each edge. The script does not warn when a drawing leaves the viewBox. A cut element shows only in the PNG.
 - For `spot`, draw one object only.
 - For a diagram, use 2 to 5 nodes, hand-drawn arrows, and short labels.
 - Draw each diagram node as a small object, not as a box. Put the label under the object.
@@ -97,5 +98,5 @@ Look at the PNG and answer each question:
 3. Does it look like clip art or a corporate icon? Then loosen the lines and break the outlines.
 4. Is the focal point off center, with room around it?
 5. Does each line look drawn by hand?
-6. Is a label cut, too small, or on top of a line?
+6. Does an edge of the sheet cut any element, label, or object? Is a label too small, or on top of a line?
 7. Is there one detail that makes the reader smile or look twice? If not, add one.
