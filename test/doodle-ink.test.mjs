@@ -97,10 +97,10 @@ test('checkSvg accepts a drawing that uses the fills of the script', () => {
 
 const SHEET = fs.readFileSync(fileURLToPath(new URL('../skills/doodle/assets/character.svg', import.meta.url)), 'utf8');
 
-test('the character sheet is a valid drawing with a head, a body, and 5 faces', () => {
+test('the character sheet is a valid drawing with a head, a body, and 6 faces', () => {
   assert.deepEqual(checkSvg(SHEET.trim()), []);
   const defs = characterDefs(SHEET);
-  for (const id of ['char-head', 'char-body-standing', 'char-face-neutral', 'char-face-happy', 'char-face-worried', 'char-face-surprised', 'char-face-tired']) {
+  for (const id of ['char-head', 'char-body-standing', 'char-face-neutral', 'char-face-happy', 'char-face-worried', 'char-face-surprised', 'char-face-tired', 'char-face-blink']) {
     assert.match(defs, new RegExp(`<g id="${id}"`), id);
   }
 });

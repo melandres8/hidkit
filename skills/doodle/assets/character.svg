@@ -35,6 +35,13 @@
 <path d="M-10 -219 C -4 -215, 5 -215, 11 -219" stroke-width="7" stroke="#fff"/>
 <path d="M-10 -219 C -4 -215, 5 -215, 11 -219" stroke-width="3"/>
 </g>
+<g id="char-face-blink" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round">
+<path d="M-23 -252 C -20 -248, -12 -248, -9 -252 M11 -252 C 14 -248, 22 -248, 25 -252" stroke-width="3.5"/>
+<path d="M-28 -275 C -22 -279, -14 -279, -8 -276 M8 -276 C 14 -279, 22 -279, 28 -275" stroke-width="9.5" stroke="#fff"/>
+<path d="M-28 -275 C -22 -279, -14 -279, -8 -276 M8 -276 C 14 -279, 22 -279, 28 -275" stroke-width="5.5"/>
+<path d="M-10 -219 C -4 -215, 5 -215, 11 -219" stroke-width="7" stroke="#fff"/>
+<path d="M-10 -219 C -4 -215, 5 -215, 11 -219" stroke-width="3"/>
+</g>
 <g id="char-face-happy" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round">
 <path d="M-23 -249 C -20 -256, -12 -256, -9 -249 M11 -249 C 14 -256, 22 -256, 25 -249" stroke-width="3"/>
 <path d="M-28 -278 C -22 -283, -14 -283, -8 -280 M8 -280 C 14 -283, 22 -283, 28 -278" stroke-width="9.5" stroke="#fff"/>
