@@ -33,6 +33,7 @@ export function checkStructure(root, config) {
   checkLinks(root, files, findings);
   checkBudgets(root, config, files, findings);
   checkToolNames(root, config, findings);
+  checkEvalFiles(root, config, findings);
   return findings;
 }
 
@@ -183,4 +184,26 @@ function checkToolNames(root, config, findings) {
       if (text.includes(`\`${name}\``)) findings.push(finding(file, 'tool-name', `\`${name}\` is a harness tool name; use the action name`));
     }
   }
+}
+
+// Eval files live in a separate private repository, so cases and fixtures never reach this public one.
+function checkEvalFiles(root, config, findings) {
+  const rule = config.evalFiles;
+  if (!rule) return;
+  const visit = (rel) => {
+    for (const entry of fs.readdirSync(path.join(root, rel), { withFileTypes: true })) {
+      const child = rel ? `${rel}/${entry.name}` : entry.name;
+      if (entry.isDirectory()) {
+        if (rule.skipDirs.includes(entry.name)) continue;
+        if (rule.dirs.includes(entry.name) || rule.dirSuffixes.some((s) => entry.name.endsWith(s))) {
+          findings.push(finding(`${child}/`, 'eval-location', 'eval files belong in the private eval repository, not here'));
+          continue;
+        }
+        visit(child);
+      } else if (rule.files.includes(entry.name)) {
+        findings.push(finding(child, 'eval-location', 'eval files belong in the private eval repository, not here'));
+      }
+    }
+  };
+  visit('');
 }

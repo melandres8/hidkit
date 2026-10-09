@@ -69,6 +69,7 @@ Security has the highest priority in Hidkit.
 | `skills/rolling-boil/` | Motion for a doodle, as a looping GIF for Substack and an animated SVG for the web. |
 | `agents/` | The roles: investigator, implementer, critic, verifier, and judge. |
 | `GLOSSARY.md` | The defined terms. |
+| `AGENTS.md`, `CLAUDE.md` | The rules for agents that work on this repository. |
 | `test/` | Unit tests. |
 | `scripts/` | A smoke test that runs Cheffy in Claude Code. It spends subscription tokens. |
 
