@@ -41,6 +41,12 @@
     { "path": "skills/cheffy/principles/", "words": 300 },
     { "path": "agents/", "words": 300 }
   ],
+  "evalFiles": {
+    "dirs": ["eval", "evals"],
+    "dirSuffixes": ["-workspace"],
+    "files": ["evals.json"],
+    "skipDirs": [".git", "node_modules", ".superpowers", ".claude", ".hidkit"]
+  },
   "toolNames": {
     "anywhere": ["subagent_type", "spawn_agent", "AskUserQuestion", "AskQuestion", "TodoWrite"],
     "backticked": ["Agent", "Task", "Bash", "Read", "Edit", "Write", "Grep", "Glob", "WebFetch", "WebSearch", "Skill"]

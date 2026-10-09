@@ -182,19 +182,21 @@ function materialMarks(box, unit, seed, level, ink, r) {
   return { defs, marks: marks.join('') };
 }
 
-// Returns the final SVG: the root gets the pixel size, a paper sheet, and the ink filter around the drawing.
-// The filter moves each line by a small random offset, so the strokes wobble like a pen on paper. With `retrace`,
-// a second copy of the lines sits under the drawing with other offsets, like a pen that goes over a line twice.
-// The second copy leaves out the text, so labels stay sharp. A tone filter maps black to the ink color and white to
-// the paper color, so white fills match the sheet. The paper textures lie on top of the drawing, so they also cover
-// the fills and the ink.
 // Returns the inner content of the <defs> of the character sheet, or an empty string.
 export function characterDefs(sheet) {
   const m = sheet.match(/<defs>([\s\S]*?)<\/defs>/i);
   return m ? m[1].trim() : '';
 }
 
-export function inkSvg(svg, { preset, seed = 1, retrace = true, paper = 'newsprint', material = 'light', character = '' }) {
+// Returns the final SVG: the root gets the pixel size, a paper sheet, and the ink filter around the drawing.
+// The filter moves each line by a small random offset, so the strokes wobble like a pen on paper. With `retrace`,
+// a second copy of the lines sits under the drawing with other offsets, like a pen that goes over a line twice.
+// The second copy leaves out the text, so labels stay sharp. A tone filter maps black to the ink color and white to
+// the paper color, so white fills match the sheet. The paper textures lie on top of the drawing, so they also cover
+// the fills and the ink. With `boil` above 1, the drawing is repeated that number of times, each copy with its own
+// filter seeds, in groups with the classes `doodle-boil` and `doodle-boil-<n>`. An animation that shows one copy at a
+// time makes the lines boil, like a hand-drawn cartoon.
+export function inkSvg(svg, { preset, seed = 1, retrace = true, paper = 'newsprint', material = 'light', character = '', boil = 1 }) {
   const rootTag = svg.match(/<svg\b[^>]*>/i)[0];
   const box = viewBox(rootTag);
   const { width, height } = sizeFor(preset, box);
@@ -208,11 +210,17 @@ export function inkSvg(svg, { preset, seed = 1, retrace = true, paper = 'newspri
     `<feTurbulence type="fractalNoise" baseFrequency="${r(frequency / unit)}" numOctaves="${octaves}" seed="${s}" result="noise"/>`
     + `<feDisplacementMap in="SourceGraphic" in2="noise" scale="${r(scale * unit)}" xChannelSelector="R" yChannelSelector="G"/>`;
   const region = 'x="-5%" y="-5%" width="110%" height="110%"';
-  const filters = [`<filter id="doodle-ink" ${region}>${noise(0.02, 3, 6, seed)}</filter>`, fillPatterns(unit, seed, r)];
-  // The second pen line is thinner (erode) and sits a little off the first one (offset).
-  if (retrace) {
-    filters.push(`<filter id="doodle-retrace" ${region}>${noise(0.008, 2, 16, seed + 101)}`
-      + `<feMorphology operator="erode" radius="${r(0.6 * unit)}"/><feOffset dx="${r(2 * unit)}" dy="${r(-1.5 * unit)}"/></filter>`);
+  const copies = Math.max(1, Math.floor(boil));
+  // Copy 0 keeps the plain filter ids and seeds, so a still drawing does not change.
+  const suffix = (k) => (k === 0 ? '' : `-${k}`);
+  const filters = [fillPatterns(unit, seed, r)];
+  for (let k = 0; k < copies; k += 1) {
+    filters.push(`<filter id="doodle-ink${suffix(k)}" ${region}>${noise(0.02, 3, 6, seed + 37 * k)}</filter>`);
+    // The second pen line is thinner (erode) and sits a little off the first one (offset).
+    if (retrace) {
+      filters.push(`<filter id="doodle-retrace${suffix(k)}" ${region}>${noise(0.008, 2, 16, seed + 101 + 37 * k)}`
+        + `<feMorphology operator="erode" radius="${r(0.6 * unit)}"/><feOffset dx="${r(2 * unit)}" dy="${r(-1.5 * unit)}"/></filter>`);
+    }
   }
 
   const p = PAPERS[paper];
@@ -243,10 +251,15 @@ export function inkSvg(svg, { preset, seed = 1, retrace = true, paper = 'newspri
   const start = svg.indexOf(rootTag);
   const end = svg.lastIndexOf('</svg>');
   const body = svg.slice(start + rootTag.length, end);
-  const under = retrace
-    ? `<g filter="url(#doodle-retrace)">${body.replace(/<text\b[\s\S]*?<\/text>/gi, '').replace(/\sid\s*=\s*("[^"]*"|'[^']*')/gi, '')}</g>`
-    : '';
-  const drawing = `${under}<g filter="url(#doodle-ink)">${body}</g>`;
+  const withoutIds = (s) => s.replace(/\sid\s*=\s*("[^"]*"|'[^']*')/gi, '');
+  // Only copy 0 keeps the ids, so each id stays unique.
+  const layer = (k) => {
+    const under = retrace ? `<g filter="url(#doodle-retrace${suffix(k)})">${withoutIds(body.replace(/<text\b[\s\S]*?<\/text>/gi, ''))}</g>` : '';
+    return `${under}<g filter="url(#doodle-ink${suffix(k)})">${k === 0 ? body : withoutIds(body)}</g>`;
+  };
+  const drawing = copies === 1
+    ? layer(0)
+    : Array.from({ length: copies }, (_, k) => `<g class="doodle-boil doodle-boil-${k}">${layer(k)}</g>`).join('');
   // The character parts go into the defs only when the drawing uses them.
   if (character && /#char-/.test(body)) filters.push(character);
   const extra = materialMarks(box, unit, seed, material, p.ink, r);
@@ -283,7 +296,7 @@ function exportPng(chrome, svgFile, pngFile, { width, height }) {
   return r.status === 0 && fs.existsSync(pngFile) && fs.statSync(pngFile).size > 0;
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
+if (process.argv[1] && fs.realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const args = process.argv.slice(2);
   let preset;
   let out;
