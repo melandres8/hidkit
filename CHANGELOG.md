@@ -10,6 +10,7 @@ While the version is 0.x, the behavior of Cheffy and the ledger format can chang
 
 - Fill-me-in, a skill that briefs the user on the work of the session. It states the idea of the change, groups the files into parts, and shows the key moves as phases. A script, `map.mjs`, finds the parts and the code that refers to them. A second script, `render.mjs`, builds the briefing as one self-contained HTML page and opens it in the browser. The page shows a diagram of the connections, with a detail panel for each part. The chat reply holds only the idea, a short summary, and the path of the page.
 - Doodle, a skill that draws a black and white illustration for a Substack post from an idea or a description. The model writes an SVG with the rules of a style guide. A script, `ink.mjs`, checks that the drawing has no color, adds a hand-drawn ink filter with a second pen line, puts the drawing on textured paper (`newsprint` by default, or `sketchbook`, `kraft`, or `white`), adds marks of a used sketchbook page (`--material`), and exports a PNG with headless Chrome. The drawings can use stipple and hatch fills from the script and a recurring character: a man with dark skin, a short afro, a mustache and goatee, and round glasses, with 5 faces.
+- `AGENTS.md` (and `CLAUDE.md`, which imports it) tells each agent that eval files go in the private eval repository. `npm run lint` fails when this repository holds an `eval/` or `evals/` directory, an `evals.json` file, or a `*-workspace/` directory.
 
 ### Security
 

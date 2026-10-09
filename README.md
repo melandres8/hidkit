@@ -68,6 +68,7 @@ Security has the highest priority in Hidkit.
 | `skills/doodle/` | Black and white doodles for Substack posts, as an SVG and a PNG. |
 | `agents/` | The roles: investigator, implementer, critic, verifier, and judge. |
 | `GLOSSARY.md` | The defined terms. |
+| `AGENTS.md`, `CLAUDE.md` | The rules for agents that work on this repository. |
 | `test/` | Unit tests. |
 | `scripts/` | A smoke test that runs Cheffy in Claude Code. It spends subscription tokens. |
 

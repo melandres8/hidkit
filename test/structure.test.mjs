@@ -92,3 +92,19 @@ test('missing pass.md is an error only when recipes exist', () => {
   edit(root, 'skills/cheffy/SKILL.md', '| [Bug fix](recipes/bug-fix.md) | A reported defect. |', '');
   assert.deepEqual(rules(root), []);
 });
+
+test('flags eval files, which belong in the private eval repository', () => {
+  const root = copyFixture();
+  fs.mkdirSync(path.join(root, 'skills/cheffy/evals'), { recursive: true });
+  fs.mkdirSync(path.join(root, 'skills/cheffy-workspace'), { recursive: true });
+  fs.writeFileSync(path.join(root, 'skills/cheffy-workspace/SKILL.md'), '---\nname: cheffy-workspace\ndescription: x\n---\n');
+  fs.mkdirSync(path.join(root, 'node_modules/x/evals'), { recursive: true });
+  fs.writeFileSync(path.join(root, 'agents/evals.json'), '{}');
+  assert.deepEqual(rules(root).filter((r) => r.startsWith('eval-location')), [
+    'eval-location: eval files belong in the private eval repository, not here',
+    'eval-location: eval files belong in the private eval repository, not here',
+    'eval-location: eval files belong in the private eval repository, not here',
+  ]);
+  const files = checkStructure(root, config).filter((f) => f.rule === 'eval-location').map((f) => f.file).sort();
+  assert.deepEqual(files, ['agents/evals.json', 'skills/cheffy-workspace/', 'skills/cheffy/evals/']);
+});
