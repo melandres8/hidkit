@@ -150,3 +150,11 @@ test('swap shows one pose at a time, and sway turns 3 degrees at a quarter of it
   assert.deepEqual(pose2, [false, false, false, false, true, true, true, true]);
   assert.match(rules(6), /\.m-2\{transform:rotate\(3deg\)\}/);
 });
+
+test('removing the motion attributes cannot make an event attribute that the check did not see', () => {
+  const svg = drawing('<g data-motion="bob" o data-delay="0"nclick="alert(1)"><path d="M0 0"/></g>');
+  const { svg: tagged } = tagMotion(svg);
+  assert.ok(!/\sonclick=/.test(tagged));
+  const r = animate(svg, { preset: 'cover' });
+  assert.ok(r.problems.length > 0 || !/\sonclick=/.test(r.svg));
+});

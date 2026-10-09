@@ -120,8 +120,9 @@ export function tagMotion(svg) {
     }
     tracks.push(track);
     let next = addClass(tag, `m m-${track.i}`);
-    for (const key of MOTION_ATTRS) next = next.replace(new RegExp(`\\s${key}\\s*=\\s*("[^"]*"|'[^']*')`, 'i'), '');
-    return next;
+    // Replace each attribute with a space, so the text around it cannot join into a new attribute.
+    for (const key of MOTION_ATTRS) next = next.replace(new RegExp(`\\s${key}\\s*=\\s*("[^"]*"|'[^']*')`, 'i'), ' ');
+    return next.replace(/\s+(\/?>)$/, '$1');
   });
   return { svg: out, tracks, problems };
 }
@@ -281,6 +282,10 @@ export function animate(svg, { preset, seed = 1, retrace = true, paper = 'newspr
   let drawing = tagged.svg;
   let items = [];
   if (draw) ({ svg: drawing, items } = tagDraw(drawing, tagged.tracks.filter((t) => t.kind === 'flow').map((t) => `m-${t.i}`)));
+  // Check the drawing again after the changes. A tag that the first check read in one way can read in another way
+  // after an attribute is removed or added.
+  const after = checkSvg(drawing);
+  if (after.length) return { problems: after };
   const periods = tagged.tracks.map((t) => t.period);
   if (boil) periods.push(BOIL.copies * BOIL.hold);
   const { frames: drawFrames, slots } = draw ? drawSlots(items) : { frames: 0, slots: [] };
