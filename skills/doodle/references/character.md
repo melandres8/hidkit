@@ -19,6 +19,7 @@ The ink script adds these parts to the page when the drawing uses them. Do not c
 | `char-face-worried` | Raised inner brows, a wavy mouth, and a drop of sweat |
 | `char-face-surprised` | Wide eyes and a round open mouth |
 | `char-face-tired` | Half-closed eyes and a flat mouth |
+| `char-face-blink` | Closed eyes, with the brows and the mouth of `char-face-neutral`. The rolling-boil skill uses it for a blink. |
 | `char-body-standing` | Short sweater, arms down, stippled hands, trousers, and black shoes |
 
 ## Compose
