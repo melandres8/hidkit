@@ -3,6 +3,7 @@
 // Usage: node map.mjs [--base <rev>] [--max <n>] <file>...
 // Prints one JSON object. Paths are relative to the git root of the working directory.
 import { execFileSync } from 'node:child_process';
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -141,7 +142,7 @@ export function mapChange({ root, files, base = 'HEAD', max = 4 }) {
   };
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
+if (process.argv[1] && fs.realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const args = process.argv.slice(2);
   let base = 'HEAD';
   let max = 4;
