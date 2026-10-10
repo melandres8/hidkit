@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { characterDefs, inkSvg } from '../skills/doodle/scripts/ink.mjs';
-import { animate, animationCss, BOIL, drawSlots, frameCss, lcm, loopLength, MAX_LOOP, tagDraw, tagMotion } from '../skills/rolling-boil/scripts/motion.mjs';
+import { animate, animationCss, BOIL, drawSlots, frameCss, lcm, loopLength, MAX_LOOP, sheetFrames, tagDraw, tagMotion } from '../skills/rolling-boil/scripts/motion.mjs';
 import { cleanupTempRepos, tempDir } from './helpers.mjs';
 
 after(cleanupTempRepos);
@@ -157,4 +157,16 @@ test('removing the motion attributes cannot make an event attribute that the che
   assert.ok(!/\sonclick=/.test(tagged));
   const r = animate(svg, { preset: 'cover' });
   assert.ok(r.problems.length > 0 || !/\sonclick=/.test(r.svg));
+});
+
+test('sheetFrames shows each pose of a 3-pose swap in a loop of 24 frames', () => {
+  const frames = sheetFrames(24);
+  assert.deepEqual(frames, [0, 7, 14, 21]);
+  // A swap of 3 poses of 4 frames has a cycle of 12 frames.
+  const poses = new Set(frames.map((f) => Math.floor((f % 12) / 4)));
+  assert.deepEqual([...poses].sort(), [0, 1, 2]);
+});
+
+test('sheetFrames stays inside a short loop', () => {
+  for (const loop of [1, 2, 3, 4, 8]) assert.ok(sheetFrames(loop).every((f) => f >= 0 && f < loop));
 });

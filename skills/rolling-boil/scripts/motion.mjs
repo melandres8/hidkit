@@ -20,6 +20,10 @@ export const BOIL = { copies: 3, hold: 2 };
 
 const TAU = Math.PI * 2;
 const r = (n) => Math.round(n * 1000) / 1000 || 0;
+
+// The 4 frames of the frame sheet. Each pick is 1 frame later than a quarter of the loop, so a short swap or blink
+// does not show the same pose in each pick.
+export const sheetFrames = (loop) => [0, 1, 2, 3].map((k) => Math.min(loop - 1, Math.floor((k * loop) / 4) + k));
 // A smooth 0 to 1 to 0 curve over one period.
 const ease = (u) => 0.5 - 0.5 * Math.cos(TAU * u);
 const WIGGLE = [-2, 1.5, -1, 2];
@@ -424,7 +428,7 @@ if (process.argv[1] && fs.realpathSync(process.argv[1]) === fileURLToPath(import
       process.exit(1);
     }
     // A sheet of 4 frames, so the model can look at the motion as one image.
-    const picks = [0, 1, 2, 3].map((k) => path.join(work, `f${String(Math.floor((k * result.loop) / 4)).padStart(3, '0')}.png`));
+    const picks = sheetFrames(result.loop).map((f) => path.join(work, `f${String(f).padStart(3, '0')}.png`));
     const framesPng = path.join(dir, `${name}.frames.png`);
     err = ffmpeg([...picks.flatMap((p) => ['-i', p]), '-filter_complex',
       '[0][1]hstack[t];[2][3]hstack[b];[t][b]vstack,scale=1456:-2:flags=lanczos', '-frames:v', '1', '-update', '1', framesPng]);
