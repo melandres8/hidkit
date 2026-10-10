@@ -52,7 +52,7 @@ Each attribute goes on the same `<g>` as `data-motion`.
 A particle comes out of a body: a sweat drop, a tear, a spark, or a crumb. A particle that stays in place does not read as one, so it MUST move away from its source.
 
 - Draw each particle in a `swap` of 3 poses: small on the skin, then full size, then farther out.
-- At full size, a particle MUST be at least 30 units wide. Measure it after its scale transform.
+- At full size, a particle MUST meet the minimum width of the Size section. Measure it after its scale transform.
 - Point the tip of a drop back to its source, so the round side leads.
 - Put 2 particles at different stages in each pose. Then the spray does not stop between poses.
 - Draw each pose with a transform on the path, such as `translate(x y) rotate(a) scale(s)`.
@@ -61,7 +61,8 @@ A particle comes out of a body: a sweat drop, a tear, a spark, or a crumb. A par
 
 ## Size
 
-- A moving part MUST be at least 30 units wide at its largest pose. The GIF of 800 pixels shows a cover at about half size, so a smaller part does not show.
+- At its largest pose, a moving part MUST be at least 2 % of the viewBox width wide. That is 30 units on a cover of 1456, and 12 units on a spot of 600.
+- The GIF scales the full width to 800 pixels, so this minimum shows at about 16 pixels. A smaller part does not show.
 - To make a part larger, wrap it in a new `<g>` with a scale transform, inside its motion group.
 
 ## Rules for the groups
