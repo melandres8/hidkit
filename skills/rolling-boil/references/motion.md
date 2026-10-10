@@ -12,7 +12,7 @@ The motion makes a doodle feel alive, like a hand-drawn cartoon. It does not tur
 
 | Drawing | Weak motion | Strong motion |
 |---|---|---|
-| A calendar page with a bite out of it | The full page bobs up and down | Crumbs fall in 2 poses, and the page stays still |
+| A calendar page with a bite out of it | The full page bobs up and down | Crumbs fall from the bite in 3 poses, and the page stays still |
 | A tower of boxes, a figure adds one more | The tower spins | The top box wiggles, and the figure breathes and blinks |
 | A tired character with a mug of coffee | The character, the mug, and the label all move | The steam flows, the character blinks |
 
@@ -104,4 +104,4 @@ Look at the frame sheet and answer each question:
 3. Is each motion small? A big motion looks like clip art. Lower `data-amount` first.
 4. Does the turning point look right? A plant MUST sway from its pot, not from its middle.
 5. Do 2 similar parts move together like robots? Give them different `data-delay` values.
-6. Does a part leave the sheet, cover a label, or touch another line of the drawing, in some frame?
+6. Does a part leave the sheet, cover a label, or touch another line of the drawing, in some frame? The first pose of a particle touches its source by design.

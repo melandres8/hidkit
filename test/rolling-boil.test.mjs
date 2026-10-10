@@ -159,14 +159,34 @@ test('removing the motion attributes cannot make an event attribute that the che
   assert.ok(r.problems.length > 0 || !/\sonclick=/.test(r.svg));
 });
 
-test('sheetFrames shows each pose of a 3-pose swap in a loop of 24 frames', () => {
-  const frames = sheetFrames(24);
-  assert.deepEqual(frames, [0, 7, 14, 21]);
-  // A swap of 3 poses of 4 frames has a cycle of 12 frames.
-  const poses = new Set(frames.map((f) => Math.floor((f % 12) / 4)));
-  assert.deepEqual([...poses].sort(), [0, 1, 2]);
+const swapPose = (f, t) => Math.floor((((f - t.shift) % t.period) + t.period) % t.period / (t.period / t.poses));
+
+test('sheetFrames shows each pose of a 3-pose swap, also when the loop is a multiple of 4 swap cycles', () => {
+  const swap = { name: 'swap', poses: 3, period: 12, shift: 0 };
+  for (const loop of [12, 24, 48, 96]) {
+    const frames = sheetFrames(loop, [swap]);
+    assert.ok(frames.every((f) => f >= 0 && f < loop));
+    assert.deepEqual([...new Set(frames.map((f) => swapPose(f, swap)))].sort(), [0, 1, 2], `loop ${loop}`);
+  }
 });
 
-test('sheetFrames stays inside a short loop', () => {
-  for (const loop of [1, 2, 3, 4, 8]) assert.ok(sheetFrames(loop).every((f) => f >= 0 && f < loop));
+test('sheetFrames follows the delay of the swap', () => {
+  const swap = { name: 'swap', poses: 3, period: 12, shift: 5 };
+  assert.deepEqual([...new Set(sheetFrames(24, [swap]).map((f) => swapPose(f, swap)))].sort(), [0, 1, 2]);
+});
+
+test('sheetFrames shows the closed face of a blink next to a 3-pose swap', () => {
+  const swap = { name: 'swap', poses: 3, period: 12, shift: 0 };
+  const blink = { name: 'blink', frame: 'closed', period: 48, shift: 0 };
+  const frames = sheetFrames(48, [swap, { ...blink, frame: 'open' }, blink]);
+  assert.equal(frames[3], Math.round(0.6 * 48));
+  assert.deepEqual([...new Set(frames.slice(0, 3).map((f) => swapPose(f, swap)))].sort(), [0, 1, 2]);
+});
+
+test('sheetFrames gives 4 different frames for the boil alone', () => {
+  for (const loop of [4, 6, 8, 24]) {
+    const frames = sheetFrames(loop);
+    assert.equal(new Set(frames).size, 4, `loop ${loop}`);
+    assert.ok(frames.every((f) => f >= 0 && f < loop));
+  }
 });

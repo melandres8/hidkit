@@ -21,9 +21,21 @@ export const BOIL = { copies: 3, hold: 2 };
 const TAU = Math.PI * 2;
 const r = (n) => Math.round(n * 1000) / 1000 || 0;
 
-// The 4 frames of the frame sheet. Each pick is 1 frame later than a quarter of the loop, so a short swap or blink
-// does not show the same pose in each pick.
-export const sheetFrames = (loop) => [0, 1, 2, 3].map((k) => Math.min(loop - 1, Math.floor((k * loop) / 4) + k));
+// The 4 frames of the frame sheet. Each pick starts at a quarter of the loop. A quarter can fall on the same pose of a
+// swap each time, so each pick moves forward to the middle of the next pose of the swap with the most poses. When a
+// pick is left over, it moves to the closed face of a blink, so the sheet shows the blink.
+export function sheetFrames(loop, tracks = []) {
+  const at = (base, target, track) => (base + ((((target + track.shift - base) % track.period) + track.period) % track.period)) % loop;
+  const swap = tracks.filter((t) => t.name === 'swap' && t.poses).sort((a, b) => b.poses - a.poses || b.period - a.period)[0];
+  const blink = tracks.find((t) => t.name === 'blink');
+  return [0, 1, 2, 3].map((k) => {
+    const base = Math.floor((k * loop) / 4);
+    if (blink && k === 3 && (!swap || swap.poses < 4)) return at(base, Math.round(0.6 * blink.period), blink);
+    if (!swap) return base;
+    const size = swap.period / swap.poses;
+    return at(base, (k % swap.poses) * size + Math.floor(size / 2), swap);
+  });
+}
 // A smooth 0 to 1 to 0 curve over one period.
 const ease = (u) => 0.5 - 0.5 * Math.cos(TAU * u);
 const WIGGLE = [-2, 1.5, -1, 2];
@@ -428,7 +440,7 @@ if (process.argv[1] && fs.realpathSync(process.argv[1]) === fileURLToPath(import
       process.exit(1);
     }
     // A sheet of 4 frames, so the model can look at the motion as one image.
-    const picks = sheetFrames(result.loop).map((f) => path.join(work, `f${String(f).padStart(3, '0')}.png`));
+    const picks = sheetFrames(result.loop, result.tracks).map((f) => path.join(work, `f${String(f).padStart(3, '0')}.png`));
     const framesPng = path.join(dir, `${name}.frames.png`);
     err = ffmpeg([...picks.flatMap((p) => ['-i', p]), '-filter_complex',
       '[0][1]hstack[t];[2][3]hstack[b];[t][b]vstack,scale=1456:-2:flags=lanczos', '-frames:v', '1', '-update', '1', framesPng]);

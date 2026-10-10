@@ -37,6 +37,12 @@ The input is the drawing SVG that the doodle skill wrote, `<slug>.svg`. A `<slug
 8. Look at `<slug>.frames.png` with `read-file`. It shows 4 frames of the loop. Answer the taste check of the motion guide.
    - Each frame of the sheet is at half size, so a small part is hard to see.
    - When a moving part is small, crop it from the sheet with ffmpeg and enlarge it 3 times. Look at the crop.
+   - Write the crop to the scratchpad directory, not to `<dir>`. For example:
+
+     ```text
+     ffmpeg -y -i <dir>/<slug>.frames.png -vf "crop=<w>:<h>:<x>:<y>,scale=iw*3:-1" <scratchpad>/crop.png
+     ```
+
 9. If a check fails, fix the copy one time and run the script again.
 
 - `<skill-dir>` is the directory of this file.
