@@ -63,5 +63,7 @@ Reply in the language of the user. Follow [plating](../plating/SKILL.md). Write 
 
 1. **Concept.** One sentence about the drawing.
 2. **Other concepts.** The 2 concepts that you did not pick, in one line. Leave out this line when the user described the drawing.
-3. **Files.** The path of the PNG and the path of the final SVG.
+3. **Files.** The path of the PNG, the path of the final SVG, and the path of the drawing SVG `<slug>.svg`.
+   - Name the drawing SVG, because rolling-boil animates it, and the final SVG already has the ink.
+   - When `<dir>` is the scratchpad, tell the user to keep the drawing SVG too. The scratchpad is temporary.
 4. **Next.** Tell the user to ask for a change or to pick another concept.
