@@ -5,14 +5,14 @@ The motion makes a doodle feel alive, like a hand-drawn cartoon. It does not tur
 ## Idea
 
 - Give the drawing one main motion. It MUST serve the idea of the drawing.
-- Find the moment in the drawing, and move the part that tells it. A mug that steams says "the coffee is hot". A sweat drop that pulses says "the character is nervous".
+- Find the moment in the drawing, and move the part that tells it. A mug that steams says "the coffee is hot". Sweat that springs from the head says "the character is nervous".
 - Add at most 2 small motions that support the main one. A blink or a breath makes the character feel alive.
 - Leave most of the drawing still. A drawing where everything moves has no focal point.
 - The line boil runs on the full drawing. It is not a motion that you add.
 
 | Drawing | Weak motion | Strong motion |
 |---|---|---|
-| A calendar page with a bite out of it | The full page bobs up and down | Crumbs fall in 2 poses, and the page stays still |
+| A calendar page with a bite out of it | The full page bobs up and down | Crumbs fall from the bite in 3 poses, and the page stays still |
 | A tower of boxes, a figure adds one more | The tower spins | The top box wiggles, and the figure breathes and blinks |
 | A tired character with a mug of coffee | The character, the mug, and the label all move | The steam flows, the character blinks |
 
@@ -25,13 +25,13 @@ The script knows these motions. Put `data-motion="<name>"` on a `<g>` that wraps
 | `sway` | Turns 3° to each side around the bottom of the part | 2.4 s | Plants, a figure that hesitates, a sign on a post |
 | `bob` | Goes up 6 units and comes back | 1.2 s | A floating object, a happy jump |
 | `breathe` | Grows 1.5 % taller from the feet | 2.4 s | A full character, a sleeping object |
-| `pulse` | Grows 5 % from the center | 1.2 s | A heart, a notification dot, a sweat drop |
+| `pulse` | Grows 5 % from the center | 1.2 s | A heart, a notification dot, a mark that stays in place |
 | `float` | Drifts in a small figure eight | 2.4 s | A cloud, a balloon, a thought |
 | `wiggle` | Shakes in 4 small steps | 0.8 s | Nerves, a phone that rings, a box that is about to fall |
 | `spin` | Turns a full circle | 2.4 s | A wheel, a fan, a loading circle |
 | `flow` | Dashes travel along each line, from the start of the path to the end | 1.6 s | Steam, wind, water, the arrows of a diagram |
 | `blink` | Shows the closed face for 0.2 s | 4.8 s | The eyes of the character |
-| `swap` | Shows one pose at a time | 0.4 s per pose | Hand-drawn poses, such as an arm that waves, or falling crumbs |
+| `swap` | Shows one pose at a time | 0.4 s per pose, so 1.2 s for 3 poses | Hand-drawn poses, such as an arm that waves, or falling crumbs |
 
 ## Attributes
 
@@ -44,6 +44,25 @@ Each attribute goes on the same `<g>` as `data-motion`.
 - `data-frame`: needed for `blink` and `swap`.
   - For `blink`, use `"open"` on the group with the open face and `"closed"` on the group with `#char-face-blink`.
   - For `swap`, use `"1/3"`, `"2/3"`, and `"3/3"` on 3 groups, one for each pose. All poses MUST have the same `data-period`.
+
+- For `swap`, `data-period` is the time of the full cycle, not of one pose. For 3 poses of 0.4 s, use 1.2.
+
+## Particles
+
+A particle comes out of a body: a sweat drop, a tear, a spark, or a crumb. A particle that stays in place does not read as one, so it MUST move away from its source.
+
+- Draw each particle in a `swap` of 3 poses: small on the skin, then full size, then farther out.
+- At full size, a particle MUST be at least 30 units wide. Measure it after its scale transform.
+- Point the tip of a drop back to its source, so the round side leads.
+- Put 2 particles at different stages in each pose. Then the spray does not stop between poses.
+- Draw each pose with a transform on the path, such as `translate(x y) rotate(a) scale(s)`.
+- A stream, such as steam, wind, or water, is not a particle. Use `flow` for it.
+- Use `pulse` only for a mark that stays in place, such as a heart.
+
+## Size
+
+- A moving part MUST be at least 30 units wide at its largest pose. The GIF of 800 pixels shows a cover at about half size, so a smaller part does not show.
+- To make a part larger, wrap it in a new `<g>` with a scale transform, inside its motion group.
 
 ## Rules for the groups
 
@@ -85,4 +104,4 @@ Look at the frame sheet and answer each question:
 3. Is each motion small? A big motion looks like clip art. Lower `data-amount` first.
 4. Does the turning point look right? A plant MUST sway from its pot, not from its middle.
 5. Do 2 similar parts move together like robots? Give them different `data-delay` values.
-6. Does a part leave the sheet, or cover a label, in some frame?
+6. Does a part leave the sheet, cover a label, or touch another line of the drawing, in some frame? The first pose of a particle touches its source by design.

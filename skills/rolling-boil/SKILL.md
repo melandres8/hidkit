@@ -8,10 +8,14 @@ Animate a doodle in the style of a hand-drawn cartoon. Deliver a looping GIF for
 
 ## Input
 
-The input is the drawing SVG that the doodle skill wrote, `<slug>.svg`. It is not `<slug>.final.svg`, which already has the ink.
+The input is the drawing SVG that the doodle skill wrote, `<slug>.svg`. A `<slug>.final.svg` also holds the clean drawing, inside `<g filter="url(#doodle-ink)">`.
 
 - When the user names no drawing, use the last doodle of the session.
-- When the user has only a PNG or a final SVG, ask for the drawing SVG. If there is none, draw the scene again with doodle first.
+- When the user gives a final SVG and no drawing SVG, extract the drawing from the final SVG.
+  - Copy the content of `<g filter="url(#doodle-ink)">` into a new `<svg>` with the same viewBox. Write it as the copy of step 4.
+  - Do not use the `doodle-retrace` group. It is a second copy of the same lines, without the labels.
+  - The user often keeps only the final SVG and the PNG, because the reply of doodle names only those files.
+- When the user has only a PNG, ask for the drawing SVG. If there is none, draw the scene again with doodle first.
 - When the user has no drawing, draw it with doodle first. Then animate it.
 - When the user describes the motion, make that motion.
 - Otherwise pick the motion. Ask a question only when the idea of the drawing is unclear.
@@ -31,6 +35,14 @@ The input is the drawing SVG that the doodle skill wrote, `<slug>.svg`. It is no
 
 7. If the script exits with 2, fix each problem that it lists. Then run it again.
 8. Look at `<slug>.frames.png` with `read-file`. It shows 4 frames of the loop. Answer the taste check of the motion guide.
+   - Each frame of the sheet is at half size, so a small part is hard to see.
+   - When a moving part is small, crop it from the sheet with ffmpeg and enlarge it 3 times. Look at the crop.
+   - Write the crop to the scratchpad directory, not to `<dir>`. For example:
+
+     ```text
+     ffmpeg -y -i <dir>/<slug>.frames.png -vf "crop=<w>:<h>:<x>:<y>,scale=iw*3:-1" <scratchpad>/crop.png
+     ```
+
 9. If a check fails, fix the copy one time and run the script again.
 
 - `<skill-dir>` is the directory of this file.
